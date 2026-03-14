@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <meta name="theme-color" content="#07090F"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>FinTrack Pro</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#07090F;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+    #root{min-height:100vh}
+    ::-webkit-scrollbar{display:none}
+    *{scrollbar-width:none}
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="root"></div>
+
+<!-- React + ReactDOM from CDN (production) -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<!-- Recharts -->
+<script src="https://unpkg.com/recharts@2.5.0/umd/Recharts.js"></script>
+<!-- Babel standalone to transpile JSX in browser -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } = React;
+const { PieChart, Pie, Cell, Sector, AreaChart, Area, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } = Recharts;
+
+// ── THEME ─────────────────────────────────────────────────────────────────
+const THEMES = {
+  dark:  { bg:"#07090F", card:"#0E1520", card2:"#141E2E", border:"#1C2A42", gold:"#F59E0B", green:"#10B981", red:"#EF4444", blue:"#3B82F6", purple:"#8B5CF6", teal:"#14B8A6", muted:"#566580", text:"#E2E8F0", navBg:"#0A1119" },
+  light: { bg:"#F0F4FA", card:"#FFFFFF", card2:"#EBF0FA", border:"#D8E2F0", gold:"#D97706", green:"#059669", red:"#DC2626", blue:"#2563EB", purple:"#7C3AED", teal:"#0D9488", muted:"#6B7280", text:"#111827", navBg:"#FFFFFF" },
+};
+const ThemeCtx = createContext({});
+const SecCtx   = createContext({});
+const useTheme = () => useContext(ThemeCtx);
+const useSec   = () => useContext(SecCtx);
+
+// ── STORAGE ───────────────────────────────────────────────────────────────
+function useLS(key, def) {
+  const [v, setV] = useState(() => {
+    try { const s=localStorage.getItem(key); return s?JSON.parse(s):def; } catch { return def; }
+  });
+  const save = useCallback((nv) => {
+    setV(prev => { const next=typeof nv==="function"?nv(prev):nv; try{localStorage.setItem(key,JSON.stringify(next));}catch{} return next; });
+  }, [key]);
+  return [v, save];
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+const fmtINR  = (n=0) => { const a=Math.abs(n),s=a>=1e7?(a/1e7).toFixed(2)+" Cr":a>=1e5?(a/1e5).toFixed(2)+" L":a>=1e3?(a/1e3).toFixed(1)+"K":Math.round(a).toLocaleString("en-IN"); return (n<0?"-₹":"₹")+s; };
+const fmtFull = (n=0) => "₹"+Math.round(n).toLocaleString("en-IN");
+const pctChg  = (c,o) => o?(((c-o)/o)*100).toFixed(2):"0.00";
+const daysLeft = d => Math.max(0,Math.ceil((new Date(d)-new Date())/86400000));
+const uid = () => Date.now()+Math.random().toString(36).slice(2);
+
+function useCountUp(target) {
+  const [v,setV]=useState(0); const r=useRef(null);
+  useEffect(()=>{ r.current=null; const go=ts=>{if(!r.current)r.current=ts;const p=Math.min((ts-r.current)/1100,1);setV(Math.round(target*(1-Math.pow(1-p,3))));if(p<1)requestAnimationFrame(go);}; requestAnimationFrame(go); },[target]);
+  return v;
+}
+
+// ── SEED DATA ─────────────────────────────────────────────────────────────
+const GOLD_RATE=7180, INCOME=85000, BUDGET=60000, CORRECT_PIN="123456";
+const INVESTMENTS=[{id:"i1",name:"Reliance Industries",sym:"RELIANCE",cat:"Stocks",amt:50000,cur:62000},{id:"i2",name:"Infosys Ltd",sym:"INFY",cat:"Stocks",amt:30000,cur:33500},{id:"i3",name:"Bitcoin",sym:"BTC",cat:"Crypto",amt:25000,cur:31200},{id:"i4",name:"Ethereum",sym:"ETH",cat:"Crypto",amt:15000,cur:18400}];
+const SIPS=[{id:"s1",name:"Axis Blue Chip Fund",amt:3000,invested:33000,cur:36500,months:11},{id:"s2",name:"Parag Parikh Flexi Cap",amt:5000,invested:75000,cur:83400,months:14}];
+const FDS=[{id:"f1",name:"SBI FD",bank:"SBI",principal:100000,rate:7.1,maturity:"2027-01-15"},{id:"f2",name:"Post Office TD",bank:"P.O.",principal:50000,rate:7.5,maturity:"2028-06-01"}];
+const GOLD=[{id:"g1",name:"Physical Gold",grams:25,buyPriceG:6200},{id:"g2",name:"SGB",grams:10,buyPriceG:5800}];
+const GOVT=[{id:"p1",type:"PPF",balance:285000,yearly:150000},{id:"p2",type:"EPF",balance:420000,yearly:72000},{id:"p3",type:"NPS",balance:85000,yearly:50000}];
+const ECATS=[{name:"Housing",color:"#3B82F6",icon:"🏠",budget:30},{name:"Food",color:"#F59E0B",icon:"🍽️",budget:15},{name:"Transport",color:"#10B981",icon:"🚗",budget:10},{name:"Health",color:"#EF4444",icon:"❤️",budget:8},{name:"Entertainment",color:"#8B5CF6",icon:"🎮",budget:7},{name:"Shopping",color:"#EC4899",icon:"🛍️",budget:10},{name:"Education",color:"#14B8A6",icon:"📚",budget:8},{name:"Utilities",color:"#6366F1",icon:"⚡",budget:7},{name:"Others",color:"#64748B",icon:"💰",budget:5}];
+const SEED_EXP=[{id:"e1",name:"Rent",cat:"Housing",amt:18000,date:"2026-03-01"},{id:"e2",name:"Groceries",cat:"Food",amt:4500,date:"2026-03-05"},{id:"e3",name:"Petrol",cat:"Transport",amt:2500,date:"2026-03-07"},{id:"e4",name:"Netflix",cat:"Entertainment",amt:800,date:"2026-03-02"},{id:"e5",name:"Amazon",cat:"Shopping",amt:3200,date:"2026-03-08"},{id:"e6",name:"Electricity",cat:"Utilities",amt:2100,date:"2026-03-03"},{id:"e7",name:"Udemy Course",cat:"Education",amt:2999,date:"2026-03-10"},{id:"e8",name:"Apollo Clinic",cat:"Health",amt:1500,date:"2026-03-09"}];
+const SEED_GOALS=[{id:"g1",emoji:"🏠",name:"Dream Home",target:5000000,saved:850000,deadline:"2030-06-01",monthly:15000,color:"#3B82F6"},{id:"g2",emoji:"🎓",name:"Child Education",target:2000000,saved:320000,deadline:"2035-04-01",monthly:8000,color:"#8B5CF6"},{id:"g3",emoji:"✈️",name:"Europe Trip",target:300000,saved:95000,deadline:"2026-12-01",monthly:25000,color:"#10B981"},{id:"g4",emoji:"🚗",name:"New Car",target:800000,saved:180000,deadline:"2027-09-01",monthly:20000,color:"#F59E0B"}];
+const SEED_WL=[{id:"w1",name:"HDFC Bank",sym:"HDFCBANK",exch:"NSE",price:1620,changePct:-0.73,alertH:1800,alertL:1500,buyPrice:1450},{id:"w2",name:"TCS",sym:"TCS",exch:"NSE",price:3890,changePct:1.17,alertH:4200,alertL:3500,buyPrice:3600},{id:"w3",name:"Bitcoin",sym:"BTC",exch:"Crypto",price:3100000,changePct:-0.89,alertH:3500000,alertL:2800000,buyPrice:2800000},{id:"w4",name:"Ethereum",sym:"ETH",exch:"Crypto",price:218000,changePct:-1.45,alertH:250000,alertL:180000,buyPrice:195000}];
+const SEED_INS=[{id:"in1",insurer:"LIC",name:"Jeevan Anand",type:"Life",sumAssured:2500000,premium:35000,nextDue:"2026-04-01",status:"due-soon",no:"LIC-884521"},{id:"in2",insurer:"Star Health",name:"Family Floater",type:"Health",sumAssured:500000,premium:22000,nextDue:"2026-06-15",status:"active",no:"SH-112233"},{id:"in3",insurer:"HDFC Ergo",name:"Term 1 Crore",type:"Term",sumAssured:10000000,premium:18000,nextDue:"2026-11-30",status:"active",no:"HE-776543"},{id:"in4",insurer:"Bajaj",name:"Car Insurance",type:"Vehicle",sumAssured:800000,premium:12000,nextDue:"2026-03-25",status:"overdue",no:"BA-445566"}];
+const SEED_SPL=[{id:"sp1",name:"Goa Trip 🏖️",total:45000,date:"2026-02-15",people:[{name:"You",share:15000,paid:true},{name:"Rahul",share:15000,paid:true},{name:"Priya",share:7500,paid:false},{name:"Amit",share:7500,paid:false}]},{id:"sp2",name:"Office Lunch 🍽️",total:2400,date:"2026-03-10",people:[{name:"You",share:600,paid:true},{name:"Neha",share:600,paid:true},{name:"Karan",share:600,paid:false},{name:"Sunita",share:600,paid:true}]}];
+const SEED_BILLS=[{id:"b1",name:"Netflix",icon:"🎬",color:"#E50914",amt:649,due:15,status:"paid",autoPay:true},{id:"b2",name:"Jio",icon:"📱",color:"#0066CC",amt:999,due:28,status:"upcoming",autoPay:false},{id:"b3",name:"LIC",icon:"🛡️",color:"#003087",amt:8500,due:2,status:"overdue",autoPay:false},{id:"b4",name:"Gym",icon:"💪",color:"#FF6B35",amt:2000,due:1,status:"overdue",autoPay:false},{id:"b5",name:"Prime",icon:"📦",color:"#FF9900",amt:1499,due:18,status:"upcoming",autoPay:true}];
+const SEED_NOTIFS=[{id:"n1",type:"alert",title:"SIP debited",body:"₹5,000 debited for Parag Parikh Flexi Cap",time:"2m ago",read:false},{id:"n2",type:"warning",title:"LIC overdue!",body:"₹8,500 was due Mar 2 — avoid policy lapse",time:"1h ago",read:false},{id:"n3",type:"success",title:"Goal milestone! 🎉",body:"Europe Trip is 31% funded. On track!",time:"3h ago",read:false},{id:"n4",type:"info",title:"Reliance up 2.4%",body:"RELIANCE crossed your alert ₹620",time:"5h ago",read:true}];
+const NW_HIST=[{m:"Apr'25",v:680000},{m:"May",v:695000},{m:"Jun",v:710000},{m:"Jul",v:688000},{m:"Aug",v:725000},{m:"Sep",v:748000},{m:"Oct",v:762000},{m:"Nov",v:780000},{m:"Dec",v:796000},{m:"Jan'26",v:820000},{m:"Feb",v:839000},{m:"Mar",v:974200}];
+
+// ── SHARED COMPONENTS ─────────────────────────────────────────────────────
+const Pill = ({text,color}) => <span style={{background:color+"22",color,fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:20,whiteSpace:"nowrap",border:`1px solid ${color}30`}}>{text}</span>;
+function Card({children,style:st={}}) { const {C}=useTheme(); return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:16,...st}}>{children}</div>; }
+function SectionTitle({children}) { const {C}=useTheme(); return <p style={{color:C.muted,fontSize:10,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",margin:"18px 0 10px"}}>{children}</p>; }
+function Toggle({value,onChange,color}) { const {C}=useTheme(); return <div onClick={()=>onChange(!value)} style={{width:46,height:26,borderRadius:13,background:value?(color||C.green):C.border,cursor:"pointer",position:"relative",transition:"background .25s",flexShrink:0}}><div style={{position:"absolute",top:3,left:value?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .25s",boxShadow:"0 1px 4px #0004"}}/></div>; }
+function MiniStat({label,value,color,sub}) { const {C}=useTheme(); return <div style={{background:C.card2,borderRadius:14,padding:"12px 14px",flex:1,minWidth:0}}><p style={{color:C.muted,fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",margin:"0 0 5px"}}>{label}</p><p style={{color:color||C.text,fontSize:17,fontWeight:800,margin:"0 0 2px",fontFamily:"monospace"}}>{value}</p>{sub&&<p style={{color:C.muted,fontSize:11,margin:0}}>{sub}</p>}</div>; }
+function Tabs({tabs,active,onChange}) { const {C}=useTheme(); return <div style={{display:"flex",gap:6,overflowX:"auto",marginBottom:14,scrollbarWidth:"none"}}>{tabs.map(t=><button key={t} onClick={()=>onChange(t)} style={{background:active===t?C.gold:C.card2,border:`1px solid ${active===t?C.gold:C.border}`,borderRadius:20,padding:"6px 14px",color:active===t?"#000":C.muted,fontSize:12,fontWeight:active===t?700:500,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{t}</button>)}</div>; }
+function AnimBal({target,size=18,color,style:st={}}) { const val=useCountUp(target); const {balHidden}=useSec(); const {C}=useTheme(); return <span style={{fontSize:size,fontWeight:800,fontFamily:"monospace",color:color||C.text,filter:balHidden?"blur(8px)":"none",transition:"filter .3s",...st}}>{fmtINR(val)}</span>; }
+function Bal({value,size=14,style:st={}}) { const {balHidden}=useSec(); const {C}=useTheme(); return <span style={{fontSize:size,fontWeight:800,fontFamily:"monospace",color:C.text,filter:balHidden?"blur(8px)":"none",transition:"filter .3s",...st}}>{value}</span>; }
+function Confetti({active}) { const p=useMemo(()=>Array.from({length:24}).map((_,i)=>({left:(i*4.2+(i%6)*5)%100,delay:(i*0.07)%0.9,dur:1.5+(i*0.1)%1.2,emoji:["🎉","✨","🎊","💰","🌟","💎"][i%6],size:12+(i%4)*5})),[]); if(!active)return null; return <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:9999,overflow:"hidden"}}><style>{`@keyframes cfall{0%{transform:translateY(-40px) rotate(0deg);opacity:1}100%{transform:translateY(900px) rotate(540deg);opacity:0}}`}</style>{p.map((x,i)=><div key={i} style={{position:"absolute",left:x.left+"%",top:0,fontSize:x.size,animation:`cfall ${x.dur}s ${x.delay}s ease-in forwards`}}>{x.emoji}</div>)}</div>; }
+function Sheet({children,onClose,title}) { const {C}=useTheme(); return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.82)",zIndex:80,display:"flex",alignItems:"flex-end",justifyContent:"center"}}><div style={{background:C.card,borderRadius:"22px 22px 0 0",padding:"22px 20px 48px",width:"100%",maxWidth:430,maxHeight:"88vh",overflowY:"auto",animation:"sUp .3s cubic-bezier(.32,.72,0,1)"}}><style>{`@keyframes sUp{from{transform:translateY(80px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}><p style={{color:C.text,fontSize:16,fontWeight:800,margin:0}}>{title}</p><button onClick={onClose} style={{background:C.card2,border:"none",borderRadius:10,padding:"7px 10px",cursor:"pointer",color:C.muted,fontSize:16}}>✕</button></div>{children}</div></div>; }
+const Inp = ({C,...p}) => <input {...p} style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",color:C.text,fontSize:14,width:"100%",boxSizing:"border-box",outline:"none",...p.style}}/>;
+const Lbl = ({C,children}) => <p style={{color:C.muted,fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.07em",margin:"10px 0 4px"}}>{children}</p>;
+function BtnGold({onClick,children}) { const {C}=useTheme(); return <button onClick={onClick} style={{width:"100%",background:C.gold,border:"none",borderRadius:14,padding:13,cursor:"pointer",color:"#000",fontSize:14,fontWeight:800,marginTop:12}}>{children}</button>; }
+
+// ── LOCK ──────────────────────────────────────────────────────────────────
+function LockScreen({onUnlock}) {
+  const {C}=useTheme();
+  const [mode,setMode]=useState("bio"); const [pin,setPin]=useState(""); const [err,setErr]=useState(""); const [ba,setBa]=useState(false); const [bd,setBd]=useState(false);
+  const tryBio=()=>{setBa(true);setTimeout(()=>{setBd(true);setTimeout(onUnlock,500);},1200);};
+  const press=d=>{if(pin.length<6){const n=pin+d;setPin(n);if(n.length===6){if(n===CORRECT_PIN)onUnlock();else{setErr("Wrong PIN — try: 1 2 3 4 5 6");setPin("");}}}};
+  return <div style={{position:"fixed",inset:0,background:C.bg,zIndex:999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",padding:"60px 32px 48px"}}>
+    <div style={{textAlign:"center"}}>
+      <div style={{width:60,height:60,borderRadius:18,background:C.card,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",fontSize:26}}>🔐</div>
+      <p style={{color:C.text,fontSize:22,fontWeight:900,margin:"0 0 4px"}}>FinTrack Pro</p>
+      <p style={{color:C.muted,fontSize:12,margin:0}}>Locked for your security</p>
+    </div>
+    <div style={{width:"100%"}}>
+      {mode==="bio"
+        ? <div style={{textAlign:"center"}}>
+            <div onClick={tryBio} style={{cursor:"pointer",width:110,height:110,borderRadius:"50%",border:`3px solid ${bd?C.green:ba?C.gold:C.border}`,margin:"0 auto 18px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:40,background:C.card,transition:"border-color .3s"}}>{bd?"✅":"👆"}</div>
+            <p style={{color:C.text,fontSize:15,fontWeight:700,margin:"0 0 5px"}}>{bd?"Unlocked!":ba?"Scanning…":"Tap to unlock"}</p>
+            <p style={{color:C.muted,fontSize:12,margin:"0 0 20px"}}>Fingerprint · Face ID</p>
+            <button onClick={()=>setMode("pin")} style={{background:"none",border:"none",color:C.gold,fontSize:13,fontWeight:700,cursor:"pointer"}}>Use PIN →</button>
+          </div>
+        : <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+            <p style={{color:C.text,fontSize:17,fontWeight:800,margin:"0 0 5px"}}>Enter PIN</p>
+            <p style={{color:C.muted,fontSize:12,margin:"0 0 22px"}}>Demo: 1 2 3 4 5 6</p>
+            <div style={{display:"flex",gap:14,marginBottom:22}}>
+              {Array.from({length:6}).map((_,i)=><div key={i} style={{width:13,height:13,borderRadius:"50%",background:i<pin.length?C.gold:"transparent",border:`2px solid ${i<pin.length?C.gold:C.border}`,transition:"all .15s"}}/>)}
+            </div>
+            {err&&<p style={{color:C.red,fontSize:12,fontWeight:700,margin:"-8px 0 14px"}}>{err}</p>}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,68px)",gap:10}}>
+              {[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map((k,i)=><button key={i} onClick={()=>k==="⌫"?setPin(p=>p.slice(0,-1)):k!==""?press(String(k)):null} style={{width:68,height:68,borderRadius:"50%",background:k===""?"transparent":C.card,border:k===""?"none":`1px solid ${C.border}`,color:C.text,fontSize:k==="⌫"?18:20,fontWeight:700,cursor:k===""?"default":"pointer"}}>{k}</button>)}
+            </div>
+            <button onClick={()=>setMode("bio")} style={{background:"none",border:"none",color:C.gold,fontSize:13,fontWeight:700,cursor:"pointer",marginTop:16}}>← Biometric</button>
+          </div>
+      }
+    </div>
+    <p style={{color:C.muted,fontSize:10}}>🔒 AES-256 · RBI-compliant</p>
+  </div>;
+}
+
+// ── ONBOARDING ────────────────────────────────────────────────────────────
+function Onboarding({onComplete}) {
+  const {C}=useTheme(); const [step,setStep]=useState(0); const [form,setForm]=useState({name:"",risk:"moderate"});
+  const steps=[
+    {emoji:"💰",title:"Welcome to\nFinTrack Pro",sub:"India's smartest personal finance app.",btn:"Get Started →",content:null},
+    {emoji:"👤",title:"Tell us about you",sub:"Personalise your experience.",btn:"Continue",content:<div style={{display:"flex",flexDirection:"column",gap:10}}><Lbl C={C}>Your Name</Lbl><Inp C={C} placeholder="Rahul Sharma" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>},
+    {emoji:"📊",title:"Risk Profile",sub:"How do you like to invest?",btn:"Start Tracking 🚀",content:<div style={{display:"flex",flexDirection:"column",gap:8}}>{[["conservative","🛡️","Conservative","FDs, PPF, Bonds"],["moderate","⚖️","Moderate","Mix of equity & debt"],["aggressive","🚀","Aggressive","Mostly equity"]].map(([k,ic,l,d])=><div key={k} onClick={()=>setForm(f=>({...f,risk:k}))} style={{background:form.risk===k?C.gold+"18":C.card2,border:`2px solid ${form.risk===k?C.gold:C.border}`,borderRadius:14,padding:"13px 15px",cursor:"pointer",display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:22}}>{ic}</span><div style={{flex:1}}><p style={{color:form.risk===k?C.gold:C.text,fontSize:14,fontWeight:700,margin:"0 0 2px"}}>{l}</p><p style={{color:C.muted,fontSize:11,margin:0}}>{d}</p></div>{form.risk===k&&<span style={{color:C.gold}}>✓</span>}</div>)}</div>}
+  ];
+  const s=steps[step];
+  return <div style={{position:"fixed",inset:0,background:C.bg,zIndex:998,display:"flex",flexDirection:"column",padding:"44px 22px 32px",maxWidth:430,margin:"0 auto"}}>
+    <div style={{display:"flex",gap:6,justifyContent:"center",marginBottom:28}}>{steps.map((_,i)=><div key={i} style={{width:i===step?22:7,height:7,borderRadius:4,background:i===step?C.gold:C.border,transition:"all .3s"}}/>)}</div>
+    <div style={{flex:1}}><div style={{textAlign:"center",marginBottom:24}}><span style={{fontSize:48,display:"block",marginBottom:14}}>{s.emoji}</span><p style={{color:C.text,fontSize:20,fontWeight:900,margin:"0 0 6px",whiteSpace:"pre-line",lineHeight:1.25}}>{s.title}</p><p style={{color:C.muted,fontSize:13,margin:0,lineHeight:1.6}}>{s.sub}</p></div>{s.content}</div>
+    <button onClick={()=>step<steps.length-1?setStep(s=>s+1):onComplete(form)} style={{width:"100%",background:C.gold,border:"none",borderRadius:16,padding:15,cursor:"pointer",color:"#000",fontSize:15,fontWeight:800}}>{s.btn}</button>
+    {step>0&&<button onClick={()=>setStep(s=>s-1)} style={{background:"none",border:"none",color:C.muted,fontSize:13,cursor:"pointer",marginTop:10,display:"block",textAlign:"center"}}>← Back</button>}
+  </div>;
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────
+const SmoothSector = p => { const {cx,cy,innerRadius,outerRadius,startAngle,endAngle,fill}=p; return <g><Sector cx={cx} cy={cy} innerRadius={innerRadius-3} outerRadius={outerRadius+8} startAngle={startAngle} endAngle={endAngle} fill={fill} cornerRadius={3}/><Sector cx={cx} cy={cy} innerRadius={outerRadius+11} outerRadius={outerRadius+13} startAngle={startAngle} endAngle={endAngle} fill={fill} opacity={0.35}/></g>; };
+
+function Dashboard({expenses,navigate,userName,unread}) {
+  const {C,isDark}=useTheme(); const [slice,setSlice]=useState(null);
+  const totalExp=(expenses||[]).reduce((s,e)=>s+e.amt,0);
+  const invCur=INVESTMENTS.reduce((s,i)=>s+i.cur,0)+SIPS.reduce((s,i)=>s+i.cur,0);
+  const fdVal=FDS.reduce((s,f)=>s+f.principal,0); const goldVal=GOLD.reduce((s,g)=>s+g.grams*GOLD_RATE,0); const govtBal=GOVT.reduce((s,g)=>s+g.balance,0);
+  const nw=invCur+fdVal+goldVal+govtBal; const saved=INCOME-totalExp;
+  const alloc=[{name:"Stocks/Crypto",value:invCur,color:C.blue},{name:"Mutual Funds",value:SIPS.reduce((s,i)=>s+i.cur,0),color:C.purple},{name:"FD/RD",value:fdVal,color:C.teal},{name:"Gold",value:goldVal,color:C.gold},{name:"PPF/NPS",value:govtBal,color:C.green}];
+  const quick=[{icon:"💬",label:"AI Advisor",sc:"advisor"},{icon:"🎯",label:"Goals",sc:"goals"},{icon:"📊",label:"Watchlist",sc:"watchlist"},{icon:"🛡️",label:"Insurance",sc:"insurance"},{icon:"👥",label:"Split",sc:"split"},{icon:"🔔",label:"Bills",sc:"bills"},{icon:"📄",label:"Reports",sc:"reports"},{icon:"↗️",label:"Share",sc:"share"}];
+  return <div style={{paddingBottom:90}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 16px 0"}}>
+      <div><p style={{color:C.muted,fontSize:12,margin:"0 0 2px"}}>नमस्ते, {userName||"Rahul Ji"} 🙏</p><h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:0}}>FY 2025–26</h1></div>
+      <button onClick={()=>navigate("notifications")} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"8px 10px",cursor:"pointer",position:"relative"}}>
+        <span style={{fontSize:16,color:unread>0?C.gold:C.muted}}>🔔</span>
+        {unread>0&&<div style={{position:"absolute",top:6,right:6,width:7,height:7,borderRadius:"50%",background:C.red}}/>}
+      </button>
+    </div>
+    <div style={{margin:"12px 14px 0",background:isDark?"linear-gradient(150deg,#162240,#0E1520)":"linear-gradient(150deg,#E8F0FF,#FFF)",border:`1px solid ${C.border}`,borderRadius:22,padding:"18px 18px 16px",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",right:-20,top:-20,width:100,height:100,background:C.gold+"0A",borderRadius:"50%",pointerEvents:"none"}}/>
+      <p style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",margin:"0 0 5px"}}>Total Net Worth</p>
+      <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:2}}><AnimBal target={nw} size={32}/><Pill text={`+${pctChg(nw,NW_HIST[0].v)}% FY`} color={C.green}/></div>
+      <p style={{color:C.muted,fontSize:11,margin:"0 0 14px"}}>{fmtFull(nw)}</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7}}>
+        {[{l:"Income",v:fmtINR(INCOME),c:C.green},{l:"Spent",v:fmtINR(totalExp),c:C.red},{l:`Saved ${Math.round(saved/INCOME*100)}%`,v:fmtINR(saved),c:C.gold}].map(m=><div key={m.l} style={{background:"#FFFFFF09",borderRadius:10,padding:"8px 10px"}}><p style={{color:C.muted,fontSize:9,margin:"0 0 2px",textTransform:"uppercase",letterSpacing:"0.07em"}}>{m.l}</p><Bal value={m.v} size={12} style={{color:m.c}}/></div>)}
+      </div>
+    </div>
+    <div style={{margin:"10px 14px 0"}}><Card>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div><p style={{color:C.text,fontSize:13,fontWeight:700,margin:"0 0 2px"}}>Net Worth Growth</p><p style={{color:C.muted,fontSize:11,margin:0}}>Apr 2025 → Mar 2026</p></div><p style={{color:C.green,fontSize:12,fontWeight:800,margin:0,fontFamily:"monospace"}}>+{fmtINR(nw-NW_HIST[0].v)}</p></div>
+      <div style={{height:110}}><ResponsiveContainer width="100%" height="100%"><AreaChart data={NW_HIST} margin={{top:4,right:4,left:4,bottom:0}}><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.gold} stopOpacity={0.28}/><stop offset="100%" stopColor={C.gold} stopOpacity={0}/></linearGradient></defs><XAxis dataKey="m" tick={{fill:C.muted,fontSize:9}} axisLine={false} tickLine={false}/><YAxis hide domain={["auto","auto"]}/><Tooltip formatter={v=>[fmtINR(v),"NW"]} contentStyle={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:12}}/><Area type="monotone" dataKey="v" stroke={C.gold} strokeWidth={2.5} fill="url(#g1)" dot={false} activeDot={{r:4,fill:C.gold,stroke:"#fff",strokeWidth:2}}/></AreaChart></ResponsiveContainer></div>
+    </Card></div>
+    <div style={{margin:"10px 14px 0"}}><Card>
+      <p style={{color:C.text,fontSize:13,fontWeight:700,margin:"0 0 12px"}}>Asset Allocation</p>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <div style={{position:"relative",width:130,height:130,flexShrink:0}}>
+          <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={alloc} cx="50%" cy="50%" innerRadius={36} outerRadius={54} paddingAngle={3} dataKey="value" activeIndex={slice!==null?slice:undefined} activeShape={SmoothSector} onMouseEnter={(_,i)=>setSlice(i)} onMouseLeave={()=>setSlice(null)} onClick={(_,i)=>setSlice(slice===i?null:i)} stroke="none">{alloc.map((d,i)=><Cell key={i} fill={d.color} opacity={slice===null||slice===i?1:0.3}/>)}</Pie></PieChart></ResponsiveContainer>
+          <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+            {slice!==null?<><p style={{color:alloc[slice].color,fontSize:11,fontWeight:800,margin:0,fontFamily:"monospace"}}>{fmtINR(alloc[slice].value)}</p><p style={{color:C.muted,fontSize:8,margin:"2px 0 0",textAlign:"center",maxWidth:60}}>{alloc[slice].name}</p></>:<><p style={{color:C.text,fontSize:11,fontWeight:800,margin:0,fontFamily:"monospace"}}>{fmtINR(nw)}</p><p style={{color:C.muted,fontSize:9,margin:"2px 0 0"}}>Total</p></>}
+          </div>
+        </div>
+        <div style={{flex:1,display:"flex",flexDirection:"column",gap:7}}>{alloc.map((d,i)=><div key={d.name} onClick={()=>setSlice(slice===i?null:i)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",opacity:slice!==null&&slice!==i?0.4:1}}><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:7,height:7,borderRadius:"50%",background:d.color}}/><span style={{color:C.muted,fontSize:10}}>{d.name}</span></div><span style={{color:slice===i?d.color:C.text,fontSize:10,fontWeight:700}}>{((d.value/nw)*100).toFixed(0)}%</span></div>)}</div>
+      </div>
+    </Card></div>
+    <div style={{margin:"10px 14px 0"}}>
+      <SectionTitle>Quick Access</SectionTitle>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>{quick.map(a=><button key={a.label} onClick={()=>navigate(a.sc)} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"12px 5px 10px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}><span style={{fontSize:20}}>{a.icon}</span><span style={{color:C.muted,fontSize:10,fontWeight:600,textAlign:"center"}}>{a.label}</span></button>)}</div>
+    </div>
+  </div>;
+}
+
+// ── GOALS ─────────────────────────────────────────────────────────────────
+function GoalsScreen({goals,setGoals}) {
+  const {C}=useTheme(); const [adding,setAdding]=useState(false); const [confetti,setConfetti]=useState(false);
+  const [form,setForm]=useState({emoji:"🎯",name:"",target:"",saved:"",deadline:"",monthly:"",color:"#3B82F6"});
+  const addSavings=(id,amt)=>setGoals(gs=>(gs||[]).map(g=>{ if(g.id!==id)return g; const ns=Math.min(g.saved+amt,g.target); if(ns===g.target){setTimeout(()=>setConfetti(true),200);setTimeout(()=>setConfetti(false),3500);} return{...g,saved:ns}; }));
+  return <div style={{padding:"0 14px 90px"}}>
+    <Confetti active={confetti}/>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 0 14px"}}>
+      <h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:0}}>Goals</h1>
+      <button onClick={()=>setAdding(true)} style={{background:C.gold,border:"none",borderRadius:12,padding:"7px 13px",cursor:"pointer",color:"#000",fontSize:13,fontWeight:700}}>+  New</button>
+    </div>
+    <div style={{display:"flex",gap:8,marginBottom:14}}>
+      <MiniStat label="Total Target" value={fmtINR((goals||[]).reduce((s,g)=>s+g.target,0))}/>
+      <MiniStat label="Total Saved" value={fmtINR((goals||[]).reduce((s,g)=>s+g.saved,0))} color={C.green}/>
+    </div>
+    {(goals||[]).map(g=>{
+      const pct=Math.min((g.saved/g.target)*100,100),dl=daysLeft(g.deadline),mNeed=g.target>g.saved?Math.ceil((g.target-g.saved)/(Math.max(dl,1)/30)):0,onTrack=g.monthly>=mNeed*0.9||pct===100;
+      return <div key={g.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:16,marginBottom:12,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:C.border}}><div style={{width:pct+"%",height:"100%",background:g.color,transition:"width .6s"}}/></div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginTop:4}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:42,height:42,borderRadius:13,background:g.color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{g.emoji}</div>
+            <div><p style={{color:C.text,fontSize:14,fontWeight:800,margin:"0 0 4px"}}>{g.name}</p><div style={{display:"flex",gap:5}}><Pill text={pct===100?"Done 🎉":pct.toFixed(0)+"%"} color={g.color}/><Pill text={onTrack?"On track":"Needs boost"} color={onTrack?C.green:C.gold}/></div></div>
+          </div>
+          <button onClick={()=>setGoals(gs=>(gs||[]).filter(x=>x.id!==g.id))} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:16}}>🗑</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginTop:12}}>
+          {[["Saved",fmtINR(g.saved),null],["Target",fmtINR(g.target),null],["Due",dl+"d",dl<90?C.red:null]].map(([l,v,c])=><div key={l} style={{background:C.card2,borderRadius:10,padding:"8px 10px"}}><p style={{color:C.muted,fontSize:9,fontWeight:700,textTransform:"uppercase",margin:"0 0 2px"}}>{l}</p><p style={{color:c||C.text,fontSize:12,fontWeight:700,margin:0}}>{v}</p></div>)}
+        </div>
+        <div style={{height:5,background:C.border,borderRadius:3,overflow:"hidden",marginTop:10}}><div style={{width:pct+"%",height:"100%",background:g.color,transition:"width .6s"}}/></div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
+          <p style={{color:C.muted,fontSize:10,margin:0}}>{pct.toFixed(1)}% · Need ~{fmtINR(mNeed)}/mo</p>
+          {pct<100&&<button onClick={()=>addSavings(g.id,g.monthly)} style={{background:C.gold+"20",border:`1px solid ${C.gold}40`,borderRadius:8,padding:"5px 11px",cursor:"pointer",color:C.gold,fontSize:11,fontWeight:700}}>+ Add {fmtINR(g.monthly)}</button>}
+        </div>
+      </div>;
+    })}
+    {adding&&<Sheet title="New Goal" onClose={()=>setAdding(false)}>
+      <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:8}}>{["🏠","🎓","✈️","🚗","💍","👶","🏖️","🎯"].map(e=><button key={e} onClick={()=>setForm(g=>({...g,emoji:e}))} style={{background:form.emoji===e?C.gold+"22":C.card2,border:`1px solid ${form.emoji===e?C.gold:C.border}`,borderRadius:10,padding:"7px 9px",cursor:"pointer",fontSize:17}}>{e}</button>)}</div>
+      <Lbl C={C}>Goal Name</Lbl><Inp C={C} placeholder="Dream Home" value={form.name} onChange={e=>setForm(g=>({...g,name:e.target.value}))}/>
+      <Lbl C={C}>Target (₹)</Lbl><Inp C={C} type="number" placeholder="5000000" value={form.target} onChange={e=>setForm(g=>({...g,target:e.target.value}))}/>
+      <Lbl C={C}>Saved (₹)</Lbl><Inp C={C} type="number" placeholder="0" value={form.saved} onChange={e=>setForm(g=>({...g,saved:e.target.value}))}/>
+      <Lbl C={C}>Monthly (₹)</Lbl><Inp C={C} type="number" placeholder="15000" value={form.monthly} onChange={e=>setForm(g=>({...g,monthly:e.target.value}))}/>
+      <Lbl C={C}>Deadline</Lbl><Inp C={C} type="date" value={form.deadline} onChange={e=>setForm(g=>({...g,deadline:e.target.value}))}/>
+      <BtnGold onClick={()=>{if(!form.name||!form.target)return;setGoals(g=>[...(g||[]),{...form,id:uid(),target:parseFloat(form.target),saved:parseFloat(form.saved||0),monthly:parseFloat(form.monthly||0)}]);setAdding(false);setForm({emoji:"🎯",name:"",target:"",saved:"",deadline:"",monthly:"",color:"#3B82F6"});}}>Add Goal</BtnGold>
+    </Sheet>}
+  </div>;
+}
+
+// ── SPENDS ────────────────────────────────────────────────────────────────
+function SpendScreen({expenses,setExpenses}) {
+  const {C}=useTheme(); const [tab,setTab]=useState("Overview"); const [adding,setAdding]=useState(false); const [editing,setEditing]=useState(null);
+  const [form,setForm]=useState({name:"",cat:"Food",amt:"",date:new Date().toISOString().slice(0,10)});
+  const totalSpent=(expenses||[]).reduce((s,e)=>s+e.amt,0); const bl=BUDGET-totalSpent; const bp=Math.min(totalSpent/BUDGET*100,100);
+  return <div style={{padding:"0 14px 90px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 0 14px"}}>
+      <h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:0}}>Spends</h1>
+      <button onClick={()=>setAdding(true)} style={{background:C.gold,border:"none",borderRadius:12,padding:"7px 13px",cursor:"pointer",color:"#000",fontSize:13,fontWeight:700}}>+  Add</button>
+    </div>
+    <Card style={{marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:10}}>
+        <div><p style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",margin:"0 0 3px"}}>March 2026</p><Bal value={fmtFull(totalSpent)} size={24}/><p style={{color:C.muted,fontSize:11,margin:"2px 0 0"}}>of {fmtFull(BUDGET)} budget</p></div>
+        <p style={{color:bl>=0?C.green:C.red,fontSize:14,fontWeight:800,margin:0,fontFamily:"monospace"}}>{bl>=0?"+":""}{fmtFull(bl)}</p>
+      </div>
+      <div style={{height:7,background:C.border,borderRadius:3,overflow:"hidden"}}><div style={{width:bp+"%",height:"100%",background:bp>90?C.red:bp>70?C.gold:C.green,borderRadius:3,transition:"width .5s"}}/></div>
+      <p style={{color:C.muted,fontSize:10,margin:"5px 0 0"}}>{bp.toFixed(0)}% used · Savings: {((INCOME-totalSpent)/INCOME*100).toFixed(0)}%</p>
+    </Card>
+    <Tabs tabs={["Overview","Transactions"]} active={tab} onChange={setTab}/>
+    {tab==="Overview"&&ECATS.map(cat=>{ const spent=(expenses||[]).filter(e=>e.cat===cat.name).reduce((s,e)=>s+e.amt,0); if(!spent)return null; const bud=(cat.budget/100)*BUDGET,over=spent>bud; return <div key={cat.name} style={{background:C.card,border:`1px solid ${over?C.red+"50":C.border}`,borderRadius:14,padding:"13px 15px",marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:17}}>{cat.icon}</span><div><p style={{color:C.text,fontSize:13,fontWeight:700,margin:"0 0 1px"}}>{cat.name}</p><p style={{color:C.muted,fontSize:10,margin:0}}>Budget {fmtFull(bud)}</p></div></div><div style={{textAlign:"right"}}><p style={{color:C.text,fontSize:13,fontWeight:800,margin:"0 0 2px"}}>{fmtFull(spent)}</p>{over&&<Pill text="Over!" color={C.red}/>}</div></div><div style={{height:4,background:C.border,borderRadius:2}}><div style={{width:Math.min(spent/bud*100,100)+"%",height:"100%",background:over?C.red:cat.color,borderRadius:2}}/></div></div>; })}
+    {tab==="Transactions"&&[...(expenses||[])].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(exp=>{ const cat=ECATS.find(c=>c.name===exp.cat); return <div key={exp.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:13,padding:"11px 14px",marginBottom:7,display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{fontSize:18}}>{cat?.icon||"💸"}</span><div><p style={{color:C.text,fontSize:13,fontWeight:600,margin:"0 0 2px"}}>{exp.name}</p><Pill text={exp.cat} color={cat?.color||C.muted}/></div></div><div style={{display:"flex",alignItems:"center",gap:7}}><p style={{color:C.red,fontSize:13,fontWeight:800,margin:0,fontFamily:"monospace"}}>-{fmtFull(exp.amt)}</p><button onClick={()=>setEditing({...exp})} style={{background:C.card2,border:"none",borderRadius:7,padding:"4px 7px",cursor:"pointer",color:C.muted,fontSize:12}}>✏️</button><button onClick={()=>setExpenses(ex=>(ex||[]).filter(e=>e.id!==exp.id))} style={{background:C.red+"18",border:"none",borderRadius:7,padding:"4px 7px",cursor:"pointer",color:C.red,fontSize:12}}>🗑</button></div></div>; })}
+    {editing&&<Sheet title="Edit Expense" onClose={()=>setEditing(null)}><Lbl C={C}>Name</Lbl><Inp C={C} value={editing.name} onChange={e=>setEditing(d=>({...d,name:e.target.value}))}/><Lbl C={C}>Category</Lbl><select style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:12,padding:"11px 13px",color:C.text,fontSize:14,width:"100%",outline:"none"}} value={editing.cat} onChange={e=>setEditing(d=>({...d,cat:e.target.value}))}>{ECATS.map(c=><option key={c.name} value={c.name}>{c.icon} {c.name}</option>)}</select><Lbl C={C}>Amount (₹)</Lbl><Inp C={C} type="number" value={editing.amt} onChange={e=>setEditing(d=>({...d,amt:parseFloat(e.target.value)}))}/><BtnGold onClick={()=>{setExpenses(ex=>(ex||[]).map(e=>e.id===editing.id?{...e,...editing}:e));setEditing(null);}}>Save</BtnGold></Sheet>}
+    {adding&&<Sheet title="Add Expense" onClose={()=>setAdding(false)}><Lbl C={C}>Name</Lbl><Inp C={C} placeholder="Zomato" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/><Lbl C={C}>Category</Lbl><select style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:12,padding:"11px 13px",color:C.text,fontSize:14,width:"100%",outline:"none"}} value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value}))}>{ECATS.map(c=><option key={c.name} value={c.name}>{c.icon} {c.name}</option>)}</select><Lbl C={C}>Amount (₹)</Lbl><Inp C={C} type="number" placeholder="500" value={form.amt} onChange={e=>setForm(f=>({...f,amt:e.target.value}))}/><Lbl C={C}>Date</Lbl><Inp C={C} type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/><BtnGold onClick={()=>{if(!form.name||!form.amt)return;setExpenses(ex=>[...(ex||[]),{...form,id:uid(),amt:parseFloat(form.amt)}]);setAdding(false);setForm({name:"",cat:"Food",amt:"",date:new Date().toISOString().slice(0,10)});}}>Add Expense</BtnGold></Sheet>}
+  </div>;
+}
+
+// ── WATCHLIST ─────────────────────────────────────────────────────────────
+function WatchlistScreen({watchlist,setWatchlist}) {
+  const {C}=useTheme(); const [loading,setLoading]=useState(false); const [lastSync,setLastSync]=useState(null); const [adding,setAdding]=useState(false);
+  const [form,setForm]=useState({name:"",sym:"",exch:"NSE",alertH:"",alertL:"",buyPrice:""});
+  const refresh=async()=>{
+    setLoading(true);
+    const cryptoMap={BTC:"bitcoin",ETH:"ethereum",SOL:"solana",BNB:"binancecoin"};
+    const cryptos=(watchlist||[]).filter(w=>w.exch==="Crypto");
+    let wl=[...(watchlist||[])];
+    if(cryptos.length){try{const ids=cryptos.map(c=>cryptoMap[c.sym]||c.sym.toLowerCase()).join(",");const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=inr&include_24hr_change=true`);const data=await res.json();wl=wl.map(item=>{if(item.exch!=="Crypto")return item;const id=cryptoMap[item.sym]||item.sym.toLowerCase();if(data[id])return{...item,price:data[id].inr,changePct:parseFloat((data[id].inr_24h_change||0).toFixed(2))};return item;});setLastSync(new Date());}catch{}}
+    setWatchlist(wl);setLoading(false);
+  };
+  return <div style={{padding:"0 14px 90px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 0 14px"}}>
+      <div><h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:"0 0 2px"}}>Watchlist</h1><p style={{color:C.muted,fontSize:12,margin:0}}>Live CoinGecko crypto prices</p></div>
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={refresh} disabled={loading} style={{background:loading?C.border:C.gold,border:"none",borderRadius:12,padding:"7px 13px",cursor:loading?"default":"pointer",color:loading?C.muted:"#000",fontSize:13,fontWeight:700}}>🔄 {loading?"…":"Refresh"}</button>
+        <button onClick={()=>setAdding(true)} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"7px 11px",cursor:"pointer",color:C.muted}}>+</button>
+      </div>
+    </div>
+    {lastSync&&<p style={{color:C.muted,fontSize:11,margin:"0 0 12px"}}>Updated {lastSync.toLocaleTimeString("en-IN")}</p>}
+    {(watchlist||[]).map(s=>{ const up=(s.changePct||0)>=0; const gp=s.buyPrice?parseFloat(pctChg(s.price,s.buyPrice)):null; return <div key={s.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:15,marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+        <div><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}><div style={{width:7,height:7,borderRadius:"50%",background:up?C.green:C.red}}/><p style={{color:C.text,fontSize:14,fontWeight:800,margin:0}}>{s.name}</p><Pill text={s.exch} color={s.exch==="Crypto"?C.purple:C.blue}/></div><p style={{color:C.muted,fontSize:12,margin:0}}>{s.sym}</p></div>
+        <div style={{textAlign:"right"}}><p style={{color:C.text,fontSize:19,fontWeight:900,margin:"0 0 2px",fontFamily:"monospace"}}>₹{s.price?.toLocaleString("en-IN")}</p><p style={{color:up?C.green:C.red,fontSize:12,fontWeight:700,margin:0}}>{up?"+":""}{parseFloat(s.changePct||0).toFixed(2)}%</p></div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7}}>
+        {[["High Alert","₹"+s.alertH?.toLocaleString("en-IN"),C.green],["Low Alert","₹"+s.alertL?.toLocaleString("en-IN"),C.red],["P&L",gp===null?"—":(gp>=0?"+":"")+gp.toFixed(1)+"%",gp===null?C.muted:gp>=0?C.green:C.red]].map(([l,v,c])=><div key={l} style={{background:C.card2,borderRadius:10,padding:"8px 10px"}}><p style={{color:C.muted,fontSize:9,textTransform:"uppercase",margin:"0 0 3px"}}>{l}</p><p style={{color:c,fontSize:11,fontWeight:700,margin:0}}>{v}</p></div>)}
+      </div>
+      <button onClick={()=>setWatchlist(w=>(w||[]).filter(x=>x.id!==s.id))} style={{background:"none",border:"none",color:C.muted,fontSize:11,cursor:"pointer",marginTop:8,padding:0}}>Remove</button>
+    </div>; })}
+    {adding&&<Sheet title="Add to Watchlist" onClose={()=>setAdding(false)}>
+      <Lbl C={C}>Name</Lbl><Inp C={C} placeholder="HDFC Bank / Bitcoin" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/>
+      <Lbl C={C}>Symbol</Lbl><Inp C={C} placeholder="HDFCBANK / BTC" value={form.sym} onChange={e=>setForm(f=>({...f,sym:e.target.value}))}/>
+      <Lbl C={C}>Exchange</Lbl><select style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:12,padding:"11px 13px",color:C.text,fontSize:14,width:"100%",outline:"none"}} value={form.exch} onChange={e=>setForm(f=>({...f,exch:e.target.value}))}>{["NSE","BSE","Crypto"].map(e=><option key={e}>{e}</option>)}</select>
+      <Lbl C={C}>Alert High (₹)</Lbl><Inp C={C} type="number" value={form.alertH} onChange={e=>setForm(f=>({...f,alertH:e.target.value}))}/>
+      <Lbl C={C}>Alert Low (₹)</Lbl><Inp C={C} type="number" value={form.alertL} onChange={e=>setForm(f=>({...f,alertL:e.target.value}))}/>
+      <Lbl C={C}>Buy Price (optional)</Lbl><Inp C={C} type="number" value={form.buyPrice} onChange={e=>setForm(f=>({...f,buyPrice:e.target.value}))}/>
+      <BtnGold onClick={()=>{if(!form.name||!form.sym)return;setWatchlist(w=>[...(w||[]),{...form,id:uid(),price:parseFloat(form.alertH||0)*0.9,changePct:0,alertH:parseFloat(form.alertH||0),alertL:parseFloat(form.alertL||0),buyPrice:form.buyPrice?parseFloat(form.buyPrice):null}]);setAdding(false);setForm({name:"",sym:"",exch:"NSE",alertH:"",alertL:"",buyPrice:""});}}>Add</BtnGold>
+    </Sheet>}
+  </div>;
+}
+
+// ── INSURANCE ─────────────────────────────────────────────────────────────
+function InsuranceScreen({insurance,setInsurance}) {
+  const {C}=useTheme(); const [adding,setAdding]=useState(false); const [form,setForm]=useState({insurer:"",name:"",type:"Life",sumAssured:"",premium:"",nextDue:"",no:""});
+  const TM={Life:{c:C.blue,i:"💙"},Health:{c:C.green,i:"❤️"},Term:{c:C.purple,i:"🛡️"},Vehicle:{c:C.gold,i:"🚗"}};
+  const SM={active:{c:C.green,l:"Active"},"due-soon":{c:C.gold,l:"Due Soon"},overdue:{c:C.red,l:"Overdue!"}};
+  return <div style={{padding:"0 14px 90px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 0 14px"}}>
+      <h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:0}}>Insurance</h1>
+      <button onClick={()=>setAdding(true)} style={{background:C.gold,border:"none",borderRadius:12,padding:"7px 13px",cursor:"pointer",color:"#000",fontSize:13,fontWeight:700}}>+  Add</button>
+    </div>
+    <div style={{display:"flex",gap:8,marginBottom:14}}>
+      <MiniStat label="Total Coverage" value={fmtINR((insurance||[]).reduce((s,p)=>s+p.sumAssured,0))} color={C.green}/>
+      <MiniStat label="Yearly Premium" value={fmtINR((insurance||[]).reduce((s,p)=>s+p.premium,0))} color={C.gold}/>
+    </div>
+    {(insurance||[]).map(p=>{ const tm=TM[p.type]||TM.Life; const sm=SM[p.status]||SM.active; const dl=daysLeft(p.nextDue); return <div key={p.id} style={{background:C.card,border:`1px solid ${p.status==="overdue"?C.red+"50":p.status==="due-soon"?C.gold+"50":C.border}`,borderRadius:18,padding:15,marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:40,height:40,borderRadius:12,background:tm.c+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19}}>{tm.i}</div><div><p style={{color:C.text,fontSize:14,fontWeight:800,margin:"0 0 2px"}}>{p.name}</p><p style={{color:C.muted,fontSize:11,margin:"0 0 4px"}}>{p.insurer}</p><div style={{display:"flex",gap:5}}><Pill text={p.type} color={tm.c}/><Pill text={sm.l} color={sm.c}/></div></div></div>
+        <button onClick={()=>setInsurance(ps=>(ps||[]).filter(x=>x.id!==p.id))} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:16}}>🗑</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7}}>{[["Coverage",fmtINR(p.sumAssured),C.green],["Premium/yr",fmtFull(p.premium),C.text],["Due",dl===0?"TODAY":dl+"d",sm.c]].map(([l,v,c])=><div key={l} style={{background:C.card2,borderRadius:10,padding:"8px 10px"}}><p style={{color:C.muted,fontSize:9,textTransform:"uppercase",margin:"0 0 2px"}}>{l}</p><p style={{color:c,fontSize:11,fontWeight:800,margin:0}}>{v}</p></div>)}</div>
+      {p.status!=="active"&&<button onClick={()=>setInsurance(ps=>(ps||[]).map(x=>x.id===p.id?{...x,status:"active"}:x))} style={{width:"100%",background:C.green,border:"none",borderRadius:12,padding:"9px 0",cursor:"pointer",color:"#fff",fontSize:12,fontWeight:700,marginTop:10}}>Mark as Paid ✓</button>}
+    </div>; })}
+    {adding&&<Sheet title="Add Policy" onClose={()=>setAdding(false)}>
+      <Lbl C={C}>Insurer</Lbl><Inp C={C} placeholder="LIC, Star Health…" value={form.insurer} onChange={e=>setForm(f=>({...f,insurer:e.target.value}))}/>
+      <Lbl C={C}>Policy Name</Lbl><Inp C={C} placeholder="Jeevan Anand" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/>
+      <Lbl C={C}>Type</Lbl><select style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:12,padding:"11px 13px",color:C.text,fontSize:14,width:"100%",outline:"none"}} value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}>{["Life","Health","Term","Vehicle"].map(t=><option key={t}>{t}</option>)}</select>
+      <Lbl C={C}>Sum Assured (₹)</Lbl><Inp C={C} type="number" value={form.sumAssured} onChange={e=>setForm(f=>({...f,sumAssured:e.target.value}))}/>
+      <Lbl C={C}>Annual Premium (₹)</Lbl><Inp C={C} type="number" value={form.premium} onChange={e=>setForm(f=>({...f,premium:e.target.value}))}/>
+      <Lbl C={C}>Next Due Date</Lbl><Inp C={C} type="date" value={form.nextDue} onChange={e=>setForm(f=>({...f,nextDue:e.target.value}))}/>
+      <BtnGold onClick={()=>{if(!form.insurer||!form.name)return;setInsurance(ps=>[...(ps||[]),{...form,id:uid(),sumAssured:parseFloat(form.sumAssured||0),premium:parseFloat(form.premium||0),status:daysLeft(form.nextDue)<30?"due-soon":"active"}]);setAdding(false);setForm({insurer:"",name:"",type:"Life",sumAssured:"",premium:"",nextDue:"",no:""});}}>Add Policy</BtnGold>
+    </Sheet>}
+  </div>;
+}
+
+// ── SPLIT ─────────────────────────────────────────────────────────────────
+function SplitScreen({splits,setSplits}) {
+  const {C}=useTheme(); const [adding,setAdding]=useState(false); const [form,setForm]=useState({name:"",total:"",date:new Date().toISOString().slice(0,10),friends:""});
+  const youOwe=(splits||[]).reduce((s,sp)=>{const me=sp.people.find(p=>p.name==="You");return me&&!me.paid?s+me.share:s;},0);
+  const owedToYou=(splits||[]).reduce((s,sp)=>{const others=sp.people.filter(p=>p.name!=="You"&&!p.paid);return s+others.reduce((a,p)=>a+p.share,0);},0);
+  const settle=(sid,pn)=>setSplits(ss=>(ss||[]).map(s=>s.id!==sid?s:{...s,people:s.people.map(p=>p.name===pn?{...p,paid:true}:p)}));
+  const addSplit=()=>{if(!form.name||!form.total)return;const fr=form.friends.split(",").map(f=>f.trim()).filter(Boolean);const all=["You",...fr];const sh=Math.round(parseFloat(form.total)/all.length);setSplits(ss=>[...(ss||[]),{id:uid(),name:form.name,total:parseFloat(form.total),date:form.date,people:all.map(n=>({name:n,share:sh,paid:n==="You"}))}]);setAdding(false);setForm({name:"",total:"",date:new Date().toISOString().slice(0,10),friends:""});};
+  return <div style={{padding:"0 14px 90px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 0 14px"}}>
+      <h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:0}}>Split Expenses</h1>
+      <button onClick={()=>setAdding(true)} style={{background:C.gold,border:"none",borderRadius:12,padding:"7px 13px",cursor:"pointer",color:"#000",fontSize:13,fontWeight:700}}>+  New</button>
+    </div>
+    <div style={{display:"flex",gap:8,marginBottom:14}}>
+      <div style={{flex:1,background:C.red+"14",border:`1px solid ${C.red}30`,borderRadius:14,padding:"12px 14px"}}><p style={{color:C.muted,fontSize:9,fontWeight:700,textTransform:"uppercase",margin:"0 0 4px"}}>You Owe</p><p style={{color:C.red,fontSize:18,fontWeight:800,margin:0}}>{fmtFull(youOwe)}</p></div>
+      <div style={{flex:1,background:C.green+"14",border:`1px solid ${C.green}30`,borderRadius:14,padding:"12px 14px"}}><p style={{color:C.muted,fontSize:9,fontWeight:700,textTransform:"uppercase",margin:"0 0 4px"}}>Owed to You</p><p style={{color:C.green,fontSize:18,fontWeight:800,margin:0}}>{fmtFull(owedToYou)}</p></div>
+    </div>
+    {(splits||[]).map(sp=>{ const allDone=sp.people.every(p=>p.paid); return <div key={sp.id} style={{background:C.card,border:`1px solid ${allDone?C.green+"40":C.border}`,borderRadius:18,padding:15,marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><div><p style={{color:C.text,fontSize:15,fontWeight:800,margin:"0 0 2px"}}>{sp.name}</p><p style={{color:C.muted,fontSize:11,margin:0}}>{sp.date} · {sp.people.length} people</p></div><div style={{textAlign:"right"}}><p style={{color:C.text,fontSize:15,fontWeight:800,margin:"0 0 3px"}}>{fmtFull(sp.total)}</p>{allDone?<Pill text="All settled ✓" color={C.green}/>:<Pill text={sp.people.filter(p=>p.name!=="You"&&!p.paid).length+" pending"} color={C.gold}/>}</div></div>
+      {sp.people.map(p=><div key={p.name} style={{display:"flex",alignItems:"center",gap:9,background:C.card2,borderRadius:11,padding:"9px 11px",marginBottom:6}}><div style={{width:30,height:30,borderRadius:"50%",background:p.paid?C.green+"22":C.card,border:`1.5px solid ${p.paid?C.green:C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:C.muted,flexShrink:0}}>{p.name[0]}</div><div style={{flex:1}}><p style={{color:C.text,fontSize:13,fontWeight:600,margin:"0 0 1px"}}>{p.name}{p.name==="You"?" (you)":""}</p><p style={{color:p.paid?C.green:C.muted,fontSize:11,margin:0}}>{p.paid?"Paid ✓":"Pending"}</p></div><p style={{color:C.text,fontSize:12,fontWeight:800,margin:0}}>{fmtFull(p.share)}</p>{!p.paid&&p.name!=="You"&&<button onClick={()=>settle(sp.id,p.name)} style={{background:C.green,border:"none",borderRadius:8,padding:"5px 11px",cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700}}>Settle</button>}</div>)}
+    </div>; })}
+    {adding&&<Sheet title="New Split" onClose={()=>setAdding(false)}><Lbl C={C}>Name</Lbl><Inp C={C} placeholder="Goa Trip, Dinner…" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/><Lbl C={C}>Total (₹)</Lbl><Inp C={C} type="number" value={form.total} onChange={e=>setForm(f=>({...f,total:e.target.value}))}/><Lbl C={C}>Friends (comma separated)</Lbl><Inp C={C} placeholder="Rahul, Priya, Amit" value={form.friends} onChange={e=>setForm(f=>({...f,friends:e.target.value}))}/><Lbl C={C}>Date</Lbl><Inp C={C} type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/><BtnGold onClick={addSplit}>Create Split</BtnGold></Sheet>}
+  </div>;
+}
+
+// ── BILLS ─────────────────────────────────────────────────────────────────
+function BillsScreen({bills,setBills}) {
+  const {C}=useTheme(); const ov=(bills||[]).filter(b=>b.status==="overdue"); const up=(bills||[]).filter(b=>b.status==="upcoming");
+  return <div style={{padding:"0 14px 90px"}}>
+    <h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:"18px 0 14px"}}>Bills & Subscriptions</h1>
+    <div style={{display:"flex",gap:8,marginBottom:14}}><MiniStat label="Monthly Total" value={fmtINR((bills||[]).reduce((s,b)=>s+b.amt,0))}/><MiniStat label="Overdue" value={String(ov.length)} color={ov.length>0?C.red:C.green}/></div>
+    {ov.length>0&&<><SectionTitle>⚠️ Overdue</SectionTitle>{ov.map(b=><div key={b.id} style={{background:C.card,border:`1px solid ${C.red}40`,borderRadius:15,padding:"13px 15px",marginBottom:9,display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{fontSize:20}}>{b.icon}</span><div><p style={{color:C.text,fontSize:13,fontWeight:700,margin:"0 0 2px"}}>{b.name}</p><p style={{color:C.red,fontSize:11,margin:0}}>Overdue!</p></div></div><div style={{textAlign:"right"}}><p style={{color:C.text,fontSize:13,fontWeight:800,margin:"0 0 6px",fontFamily:"monospace"}}>{fmtFull(b.amt)}</p><button onClick={()=>setBills(bs=>(bs||[]).map(x=>x.id===b.id?{...x,status:"paid"}:x))} style={{background:C.green,border:"none",borderRadius:8,padding:"5px 11px",cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700}}>Pay Now</button></div></div>)}</>}
+    <SectionTitle>📅 Upcoming</SectionTitle>
+    {up.map(b=><div key={b.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:15,padding:"13px 15px",marginBottom:9,display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{fontSize:20}}>{b.icon}</span><div><p style={{color:C.text,fontSize:13,fontWeight:700,margin:"0 0 2px"}}>{b.name}</p><Pill text={b.autoPay?"Auto-pay":"Manual"} color={b.autoPay?C.green:C.gold}/></div></div><div style={{textAlign:"right"}}><p style={{color:C.text,fontSize:13,fontWeight:800,margin:"0 0 6px"}}>{fmtFull(b.amt)}</p><Toggle value={b.autoPay} onChange={v=>setBills(bs=>(bs||[]).map(x=>x.id===b.id?{...x,autoPay:v}:x))}/></div></div>)}
+    <SectionTitle>✅ Paid</SectionTitle>
+    {(bills||[]).filter(b=>b.status==="paid").map(b=><div key={b.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:13,padding:"11px 14px",marginBottom:7,opacity:0.6,display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{fontSize:18}}>{b.icon}</span><p style={{color:C.text,fontSize:13,margin:0}}>{b.name}</p></div><p style={{color:C.muted,fontSize:13,fontWeight:700,margin:0}}>{fmtFull(b.amt)}</p></div>)}
+  </div>;
+}
+
+// ── SHARE ─────────────────────────────────────────────────────────────────
+function ShareScreen({expenses}) {
+  const {C}=useTheme(); const [copied,setCopied]=useState(false);
+  const totalExp=(expenses||[]).reduce((s,e)=>s+e.amt,0);
+  const nw=INVESTMENTS.reduce((s,i)=>s+i.cur,0)+SIPS.reduce((s,i)=>s+i.cur,0)+FDS.reduce((s,f)=>s+f.principal,0)+GOLD.reduce((s,g)=>s+g.grams*GOLD_RATE,0)+GOVT.reduce((s,g)=>s+g.balance,0);
+  const saved=INCOME-totalExp;
+  const txt=`💰 *My Portfolio* — FinTrack Pro\n━━━━━━━━━━━━━━\n\n📊 *Net Worth: ${fmtINR(nw)}* (+${parseFloat(pctChg(nw,NW_HIST[0].v)).toFixed(1)}% FY)\n\n*This Month*\n💸 Spent: ${fmtINR(totalExp)}\n💚 Saved: ${fmtINR(saved)} (${Math.round(saved/INCOME*100)}%)\n\n_Tracked on FinTrack Pro_ 🚀`;
+  return <div style={{padding:"0 14px 90px"}}>
+    <h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:"18px 0 14px"}}>Share Portfolio</h1>
+    <div style={{background:"linear-gradient(145deg,#0D1F3C,#0E1520)",border:`1px solid ${C.border}`,borderRadius:22,padding:20,marginBottom:14}}>
+      <p style={{color:"#FFFFFF80",fontSize:11,fontWeight:700,textTransform:"uppercase",margin:"0 0 4px"}}>Total Net Worth</p>
+      <p style={{color:"#fff",fontSize:28,fontWeight:900,margin:"0 0 4px",fontFamily:"monospace"}}>{fmtINR(nw)}</p>
+      <p style={{color:C.green,fontSize:12,fontWeight:700,margin:"0 0 14px"}}>+{parseFloat(pctChg(nw,NW_HIST[0].v)).toFixed(1)}% this FY</p>
+      <div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid #FFFFFF10",paddingTop:12}}>
+        <div><p style={{color:"#FFFFFF60",fontSize:10,margin:"0 0 2px"}}>Saved this month</p><p style={{color:C.green,fontSize:13,fontWeight:800,margin:0,fontFamily:"monospace"}}>{fmtINR(saved)}</p></div>
+        <div style={{textAlign:"right"}}><p style={{color:"#FFFFFF60",fontSize:10,margin:"0 0 2px"}}>Savings rate</p><p style={{color:C.gold,fontSize:13,fontWeight:800,margin:0}}>{Math.round(saved/INCOME*100)}%</p></div>
+      </div>
+    </div>
+    <a href={`https://wa.me/?text=${encodeURIComponent(txt)}`} target="_blank" rel="noreferrer" style={{width:"100%",background:"#25D366",border:"none",borderRadius:16,padding:14,cursor:"pointer",color:"#fff",fontSize:14,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none",boxSizing:"border-box",marginBottom:10}}>📱 Share on WhatsApp</a>
+    <button onClick={()=>{navigator.clipboard?.writeText(txt);setCopied(true);setTimeout(()=>setCopied(false),2500);}} style={{width:"100%",background:copied?C.green:C.card,border:`1px solid ${copied?C.green:C.border}`,borderRadius:16,padding:14,cursor:"pointer",color:copied?C.green:C.muted,fontSize:14,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+      {copied?"✓ Copied!":"📋 Copy Summary Text"}
+    </button>
+  </div>;
+}
+
+// ── REPORTS ───────────────────────────────────────────────────────────────
+function ReportsScreen({expenses}) {
+  const {C}=useTheme();
+  const gross=INCOME*12; const d80C=Math.min(GOVT.reduce((s,g)=>s+g.yearly,0),150000);
+  const nt=()=>{let t=Math.max(0,gross-75000),tx=0;if(t>1500000){tx+=(t-1500000)*.3;t=1500000;}if(t>1200000){tx+=(t-1200000)*.2;t=1200000;}if(t>1000000){tx+=(t-1000000)*.15;t=1000000;}if(t>700000){tx+=(t-700000)*.1;t=700000;}if(t>300000)tx+=(t-300000)*.05;return Math.round(tx*1.04);};
+  const ot=()=>{let t=Math.max(0,gross-d80C-75000),tx=0;if(t>1000000){tx+=(t-1000000)*.3;t=1000000;}if(t>500000){tx+=(t-500000)*.2;t=500000;}if(t>250000)tx+=(t-250000)*.05;return Math.round(tx*1.04);};
+  const n=nt(),o=ot(),better=n<=o?"New":"Old";
+  const exportPDF=()=>{const w=window.open("","_blank");w.document.write(`<html><head><title>FinTrack Report</title><style>body{font-family:Arial;max-width:800px;margin:40px auto}table{width:100%;border-collapse:collapse}th{background:#f4f6fa;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #eee}</style></head><body><h1>💰 FinTrack Pro — FY 2025-26</h1><h2>Expenses</h2><table><tr><th>Name</th><th>Category</th><th>Amount</th></tr>${(expenses||[]).map(e=>`<tr><td>${e.name}</td><td>${e.cat}</td><td>₹${e.amt.toLocaleString("en-IN")}</td></tr>`).join("")}</table><h2>Tax: ${better} Regime saves ₹${Math.abs(n-o).toLocaleString("en-IN")}</h2><button onclick="window.print()">Print PDF</button></body></html>`);w.document.close();};
+  return <div style={{padding:"0 14px 90px"}}>
+    <h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:"18px 0 14px"}}>Reports</h1>
+    <button onClick={exportPDF} style={{width:"100%",background:`linear-gradient(135deg,${C.blue},${C.purple})`,border:"none",borderRadius:16,padding:13,cursor:"pointer",color:"#fff",fontSize:14,fontWeight:800,marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>📄 Export PDF Report</button>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+      {[{l:"Old Regime",v:o,c:better==="Old"?C.green:C.red,rec:better==="Old"},{l:"New Regime",v:n,c:better==="New"?C.green:C.red,rec:better==="New"}].map(r=><div key={r.l} style={{background:C.card,border:`2px solid ${r.rec?r.c:C.border}`,borderRadius:18,padding:14}}>{r.rec&&<p style={{color:r.c,fontSize:9,fontWeight:800,margin:"0 0 5px"}}>✓ RECOMMENDED</p>}<p style={{color:C.muted,fontSize:11,margin:"0 0 3px"}}>{r.l}</p><p style={{color:r.c,fontSize:20,fontWeight:900,margin:"0 0 5px"}}>{fmtINR(r.v)}</p><Pill text={(r.v/gross*100).toFixed(1)+"% effective"} color={r.c}/></div>)}
+    </div>
+    <Card><p style={{color:C.text,fontSize:13,fontWeight:700,margin:"0 0 12px"}}>Net Worth Timeline</p><div style={{height:150}}><ResponsiveContainer width="100%" height="100%"><LineChart data={NW_HIST} margin={{top:4,right:4,left:4,bottom:0}}><XAxis dataKey="m" tick={{fill:C.muted,fontSize:9}} axisLine={false} tickLine={false}/><YAxis hide/><Tooltip formatter={v=>[fmtINR(v)]} contentStyle={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:12}}/><Line type="monotone" dataKey="v" stroke={C.blue} strokeWidth={2.5} dot={{fill:C.blue,r:3}} activeDot={{r:5,fill:C.blue,stroke:"#fff",strokeWidth:2}}/></LineChart></ResponsiveContainer></div></Card>
+  </div>;
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────────
+function NotifsScreen({notifs,setNotifs}) {
+  const {C}=useTheme(); const icons={alert:"🔔",warning:"⚠️",success:"✅",info:"ℹ️"}; const colors={alert:C.blue,warning:C.gold,success:C.green,info:C.muted};
+  return <div style={{padding:"0 14px 90px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 0 14px"}}>
+      <h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:0}}>Notifications</h1>
+      {(notifs||[]).some(n=>!n.read)&&<button onClick={()=>setNotifs(n=>(n||[]).map(x=>({...x,read:true})))} style={{background:"none",border:"none",color:C.gold,fontSize:12,fontWeight:700,cursor:"pointer"}}>Mark all read</button>}
+    </div>
+    {(notifs||[]).map(n=><div key={n.id} onClick={()=>setNotifs(ns=>(ns||[]).map(x=>x.id===n.id?{...x,read:true}:x))} style={{background:n.read?C.card:C.card2,border:`1px solid ${n.read?C.border:colors[n.type]+"50"}`,borderRadius:15,padding:"13px 15px",marginBottom:9,cursor:"pointer",position:"relative"}}>
+      {!n.read&&<div style={{position:"absolute",top:14,right:14,width:7,height:7,borderRadius:"50%",background:colors[n.type]}}/>}
+      <div style={{display:"flex",gap:9,alignItems:"flex-start"}}><span style={{fontSize:18}}>{icons[n.type]}</span><div style={{flex:1}}><p style={{color:C.text,fontSize:13,fontWeight:n.read?600:800,margin:"0 0 3px"}}>{n.title}</p><p style={{color:C.muted,fontSize:12,margin:"0 0 3px",lineHeight:1.5}}>{n.body}</p><span style={{color:C.muted,fontSize:10}}>{n.time}</span></div></div>
+    </div>)}
+  </div>;
+}
+
+// ── SETTINGS ─────────────────────────────────────────────────────────────
+function SettingsScreen({secSettings,setSecSettings}) {
+  const {C,isDark,toggleTheme}=useTheme(); const {balHidden,setBalHidden}=useSec();
+  const score=Object.values(secSettings||{}).filter(Boolean).length; const sc=score>=5?C.green:score>=3?C.gold:C.red;
+  return <div style={{padding:"0 14px 90px"}}>
+    <h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:"18px 0 16px"}}>Settings</h1>
+    <SectionTitle>Appearance</SectionTitle>
+    <Card style={{marginBottom:12}}><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:22}}>{isDark?"🌙":"☀️"}</span><div style={{flex:1}}><p style={{color:C.text,fontSize:14,fontWeight:700,margin:"0 0 1px"}}>{isDark?"Dark Mode":"Light Mode"}</p><p style={{color:C.muted,fontSize:11,margin:0}}>Toggle app theme</p></div><Toggle value={isDark} onChange={toggleTheme} color={C.purple}/></div></Card>
+    <SectionTitle>Security · {score}/6 <span style={{color:sc}}>● {score>=5?"Excellent":score>=3?"Good":"Weak"}</span></SectionTitle>
+    <Card>
+      <div style={{height:5,background:C.border,borderRadius:2,overflow:"hidden",marginBottom:14}}><div style={{width:(score/6*100)+"%",height:"100%",background:sc,transition:"width .5s"}}/></div>
+      {[{k:"pinEnabled",i:"🔑",l:"PIN Lock",s:"Required on app open"},{k:"bioEnabled",i:"👆",l:"Biometric",s:"Fingerprint / Face ID"},{k:"twoFA",i:"🛡️",l:"2-Step Auth",s:"OTP for sensitive actions"},{k:"balHide",i:"👁️",l:"Hide Balances",s:"Blur amounts by default"},{k:"maskIDs",i:"🔒",l:"Mask IDs",s:"Hide account numbers"},{k:"alerts",i:"🔔",l:"Security Alerts",s:"Suspicious login alerts"}].map((r,i,arr)=><div key={r.k} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:i<arr.length-1?`1px solid ${C.border}`:"none"}}><span style={{fontSize:17,flexShrink:0}}>{r.i}</span><div style={{flex:1}}><p style={{color:C.text,fontSize:13,fontWeight:600,margin:"0 0 1px"}}>{r.l}</p><p style={{color:C.muted,fontSize:11,margin:0}}>{r.s}</p></div><Toggle value={(secSettings||{})[r.k]} onChange={v=>{setSecSettings(s=>({...s,[r.k]:v}));if(r.k==="balHide")setBalHidden(v);}} color={C.green}/></div>)}
+    </Card>
+    <SectionTitle>Data</SectionTitle>
+    <Card><p style={{color:C.text,fontSize:13,fontWeight:700,margin:"0 0 6px"}}>Saved in your browser</p><p style={{color:C.muted,fontSize:12,margin:"0 0 12px",lineHeight:1.6}}>All expenses, goals and settings persist across sessions on this device via localStorage.</p><button onClick={()=>{if(window.confirm("Delete ALL app data? Cannot be undone.")){localStorage.clear();window.location.reload();}}} style={{background:C.red+"18",border:`1px solid ${C.red}30`,borderRadius:12,padding:"9px 14px",cursor:"pointer",color:C.red,fontSize:12,fontWeight:700}}>🗑️ Clear All Data</button></Card>
+  </div>;
+}
+
+// ── MORE HUB ──────────────────────────────────────────────────────────────
+function MoreHub({navigate,unread}) {
+  const {C}=useTheme();
+  const features=[{icon:"📈",label:"Portfolio",sc:"portfolio"},{icon:"📊",label:"Watchlist",sc:"watchlist"},{icon:"🛡️",label:"Insurance",sc:"insurance"},{icon:"👥",label:"Split",sc:"split"},{icon:"↗️",label:"Share",sc:"share"},{icon:"🧾",label:"Bills",sc:"bills"},{icon:"📄",label:"Reports",sc:"reports"},{icon:"🔔",label:"Alerts",sc:"notifications",badge:unread},{icon:"⚙️",label:"Settings",sc:"settings"}];
+  return <div style={{padding:"0 14px 90px"}}>
+    <h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:"18px 0 18px"}}>More</h1>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+      {features.map(f=><button key={f.label} onClick={()=>navigate(f.sc)} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"16px 8px 13px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:7,position:"relative"}}>
+        {(f.badge||0)>0&&<div style={{position:"absolute",top:10,right:10,width:18,height:18,borderRadius:"50%",background:C.red,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:800}}>{f.badge}</div>}
+        <div style={{width:42,height:42,borderRadius:13,background:C.card2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:21}}>{f.icon}</div>
+        <span style={{color:C.text,fontSize:11,fontWeight:700,textAlign:"center"}}>{f.label}</span>
+      </button>)}
+    </div>
+  </div>;
+}
+
+// ── PORTFOLIO ─────────────────────────────────────────────────────────────
+function PortfolioScreen() {
+  const {C}=useTheme(); const [tab,setTab]=useState("Stocks");
+  return <div style={{padding:"0 14px 90px"}}>
+    <h1 style={{color:C.text,fontSize:20,fontWeight:900,margin:"18px 0 14px"}}>Portfolio</h1>
+    <Tabs tabs={["Stocks","SIP","FD/RD","Gold","PPF/NPS"]} active={tab} onChange={setTab}/>
+    {tab==="Stocks"&&INVESTMENTS.map(i=>{const up=i.cur>=i.amt;return <div key={i.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:15,padding:"13px 15px",marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between"}}><div><p style={{color:C.text,fontSize:14,fontWeight:800,margin:"0 0 3px"}}>{i.name}</p><Pill text={i.cat} color={C.blue}/></div><div style={{textAlign:"right"}}><p style={{color:C.text,fontSize:15,fontWeight:900,margin:"0 0 3px",fontFamily:"monospace"}}>{fmtINR(i.cur)}</p><p style={{color:up?C.green:C.red,fontSize:12,fontWeight:700,margin:0}}>{up?"+":""}{pctChg(i.cur,i.amt)}%</p></div></div></div>;})}
+    {tab==="SIP"&&SIPS.map(s=>{const up=s.cur>=s.invested;return <div key={s.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:15,padding:"13px 15px",marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between"}}><div><p style={{color:C.text,fontSize:14,fontWeight:800,margin:"0 0 3px"}}>{s.name}</p><Pill text={"₹"+s.amt.toLocaleString("en-IN")+"/mo"} color={C.purple}/></div><div style={{textAlign:"right"}}><p style={{color:C.text,fontSize:15,fontWeight:900,margin:"0 0 3px",fontFamily:"monospace"}}>{fmtINR(s.cur)}</p><p style={{color:up?C.green:C.red,fontSize:12,fontWeight:700,margin:0}}>XIRR {(((s.cur/s.invested)**(12/s.months)-1)*100).toFixed(1)}%</p></div></div></div>;})}
+    {tab==="FD/RD"&&FDS.map(f=><div key={f.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:15,padding:"13px 15px",marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between"}}><div><p style={{color:C.text,fontSize:14,fontWeight:800,margin:"0 0 3px"}}>{f.name}</p><Pill text={f.rate+"%"} color={C.teal}/></div><p style={{color:C.text,fontSize:15,fontWeight:900,margin:0,fontFamily:"monospace"}}>{fmtFull(f.principal)}</p></div></div>)}
+    {tab==="Gold"&&GOLD.map(g=>{const cur=g.grams*GOLD_RATE;return <div key={g.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:15,padding:"13px 15px",marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between"}}><div><p style={{color:C.text,fontSize:14,fontWeight:800,margin:"0 0 3px"}}>{g.name}</p><Pill text={g.grams+"g · ₹7,180/g"} color={C.gold}/></div><p style={{color:C.text,fontSize:15,fontWeight:900,margin:0,fontFamily:"monospace"}}>{fmtINR(cur)}</p></div></div>;})}
+    {tab==="PPF/NPS"&&GOVT.map(g=><div key={g.type} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:15,padding:"13px 15px",marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between"}}><div><p style={{color:C.text,fontSize:14,fontWeight:800,margin:"0 0 3px"}}>{g.type}</p><Pill text={"₹"+g.yearly.toLocaleString("en-IN")+"/yr"} color={C.green}/></div><p style={{color:C.text,fontSize:15,fontWeight:900,margin:0,fontFamily:"monospace"}}>{fmtINR(g.balance)}</p></div></div>)}
+  </div>;
+}
+
+// ── AI ADVISOR ────────────────────────────────────────────────────────────
+function AIAdvisor({expenses,goals}) {
+  const {C}=useTheme();
+  const [msgs,setMsgs]=useState([{role:"assistant",text:"Namaste! 🙏 I'm your AI Financial Advisor. I can see your full portfolio — ask me anything about investments, SIPs, tax planning, or goals."}]);
+  const [input,setInput]=useState(""); const [loading,setLoading]=useState(false); const bottomRef=useRef(null);
+  const SUGG=["Am I saving enough?","Which SIP gives best XIRR?","How to reduce tax?","Should I increase my SIP?","Am I on track for goals?"];
+  const ctx=JSON.stringify({income:INCOME,spent:(expenses||[]).reduce((s,e)=>s+e.amt,0),goals:(goals||[]).map(g=>({name:g.name,target:g.target,saved:g.saved}))});
+  const send=async(text)=>{
+    const q=text||input.trim();if(!q||loading)return;
+    setInput("");setMsgs(m=>[...m,{role:"user",text:q}]);setLoading(true);
+    try{const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,system:`You are a warm, expert Indian financial advisor. User portfolio: ${ctx}. Give personalised advice in 3-5 sentences using Indian terms (SIP, ELSS, NPS, 80C). End with one specific action for today.`,messages:[...msgs.filter((_,i)=>i>0).map(m=>({role:m.role,content:m.text})),{role:"user",content:q}]})});
+    const data=await res.json();setMsgs(m=>[...m,{role:"assistant",text:data.content?.[0]?.text||"Sorry, try again."}]);}
+    catch{setMsgs(m=>[...m,{role:"assistant",text:"Network error. Please check your connection."}]);}
+    setLoading(false);
+  };
+  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[msgs,loading]);
+  return <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 70px)"}}>
+    <div style={{padding:"16px 16px 12px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:10}}>
+      <div style={{width:38,height:38,borderRadius:13,background:`linear-gradient(135deg,${C.purple},${C.blue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>✨</div>
+      <div><p style={{color:C.text,fontSize:14,fontWeight:800,margin:"0 0 1px"}}>AI Financial Advisor</p><p style={{color:C.green,fontSize:11,margin:0}}>● Portfolio-aware · Powered by Claude</p></div>
+    </div>
+    <div style={{flex:1,overflowY:"auto",padding:"12px 14px",scrollbarWidth:"none"}}>
+      {msgs.map((m,i)=><div key={i} style={{display:"flex",flexDirection:"column",alignItems:m.role==="user"?"flex-end":"flex-start",marginBottom:10}}>
+        {m.role==="assistant"&&<div style={{width:24,height:24,borderRadius:7,background:`linear-gradient(135deg,${C.purple},${C.blue})`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:4,fontSize:13}}>✨</div>}
+        <div style={{maxWidth:"86%",background:m.role==="user"?C.gold:C.card,borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 13px",border:m.role==="user"?"none":`1px solid ${C.border}`}}>
+          <p style={{color:m.role==="user"?"#000":C.text,fontSize:13,margin:0,lineHeight:1.65}}>{m.text}</p>
+        </div>
+      </div>)}
+      {loading&&<div style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:10}}><div style={{width:24,height:24,borderRadius:7,background:`linear-gradient(135deg,${C.purple},${C.blue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>✨</div><div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:"16px 16px 16px 4px",padding:"12px 15px"}}><div style={{display:"flex",gap:5}}>{[0,.2,.4].map((d,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:C.muted,animation:`dot 1.2s ${d}s ease-in-out infinite`}}/>)}</div></div></div>}
+      <div ref={bottomRef}/>
+      <style>{`@keyframes dot{0%,80%,100%{opacity:0.3;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}`}</style>
+    </div>
+    {msgs.length<3&&<div style={{padding:"0 14px 8px",display:"flex",gap:7,overflowX:"auto",scrollbarWidth:"none"}}>{SUGG.map(s=><button key={s} onClick={()=>send(s)} style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:20,padding:"6px 13px",cursor:"pointer",color:C.muted,fontSize:11,fontWeight:600,whiteSpace:"nowrap",flexShrink:0}}>{s}</button>)}</div>}
+    <div style={{padding:"10px 14px 14px",borderTop:`1px solid ${C.border}`,display:"flex",gap:9}}>
+      <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Ask about your portfolio…" style={{flex:1,background:C.card2,border:`1px solid ${C.border}`,borderRadius:13,padding:"11px 14px",color:C.text,fontSize:14,outline:"none"}}/>
+      <button onClick={()=>send()} disabled={!input.trim()||loading} style={{width:44,height:44,borderRadius:13,background:input.trim()&&!loading?C.gold:C.border,border:"none",cursor:input.trim()&&!loading?"pointer":"default",fontSize:20,flexShrink:0}}>→</button>
+    </div>
+  </div>;
+}
+
+// ── ROOT APP ──────────────────────────────────────────────────────────────
+function App() {
+  const [isDark,setIsDark]=useLS("ftp-theme",true);
+  const C=THEMES[isDark?"dark":"light"];
+  const toggleTheme=()=>setIsDark(v=>!v);
+  const [locked,setLocked]=useState(true); const [balHidden,setBalHidden]=useState(true);
+  const [profile,setProfile]=useLS("ftp-profile",null);
+  const [expenses,setExpenses]=useLS("ftp-expenses",SEED_EXP);
+  const [goals,setGoals]=useLS("ftp-goals",SEED_GOALS);
+  const [watchlist,setWatchlist]=useLS("ftp-watchlist",SEED_WL);
+  const [insurance,setInsurance]=useLS("ftp-insurance",SEED_INS);
+  const [splits,setSplits]=useLS("ftp-splits",SEED_SPL);
+  const [bills,setBills]=useLS("ftp-bills",SEED_BILLS);
+  const [notifs,setNotifs]=useLS("ftp-notifs",SEED_NOTIFS);
+  const [secSettings,setSecSettings]=useLS("ftp-sec",{pinEnabled:true,bioEnabled:true,twoFA:true,balHide:true,maskIDs:true,alerts:true});
+  const [screen,setScreen]=useState("home");
+  const navigate=sc=>setScreen(sc);
+  const unread=(notifs||[]).filter(n=>!n.read).length;
+  const NAV=[{id:"home",icon:"🏠",label:"Home"},{id:"advisor",icon:"💬",label:"Advisor"},{id:"goals",icon:"🎯",label:"Goals"},{id:"spends",icon:"💳",label:"Spends"},{id:"more",icon:"⋯",label:"More"}];
+
+  if(locked) return <ThemeCtx.Provider value={{C,isDark,toggleTheme}}><LockScreen onUnlock={()=>setLocked(false)}/></ThemeCtx.Provider>;
+  if(!profile) return <ThemeCtx.Provider value={{C,isDark,toggleTheme}}><Onboarding onComplete={f=>setProfile({name:f.name||"Rahul Ji",risk:f.risk})}/></ThemeCtx.Provider>;
+
+  const screenEl=()=>{
+    if(screen==="home")         return <Dashboard expenses={expenses} navigate={navigate} userName={profile?.name} unread={unread}/>;
+    if(screen==="advisor")      return <AIAdvisor expenses={expenses} goals={goals}/>;
+    if(screen==="goals")        return <GoalsScreen goals={goals} setGoals={setGoals}/>;
+    if(screen==="spends")       return <SpendScreen expenses={expenses} setExpenses={setExpenses}/>;
+    if(screen==="watchlist")    return <WatchlistScreen watchlist={watchlist} setWatchlist={setWatchlist}/>;
+    if(screen==="insurance")    return <InsuranceScreen insurance={insurance} setInsurance={setInsurance}/>;
+    if(screen==="split")        return <SplitScreen splits={splits} setSplits={setSplits}/>;
+    if(screen==="share")        return <ShareScreen expenses={expenses}/>;
+    if(screen==="bills")        return <BillsScreen bills={bills} setBills={setBills}/>;
+    if(screen==="reports")      return <ReportsScreen expenses={expenses}/>;
+    if(screen==="portfolio")    return <PortfolioScreen/>;
+    if(screen==="notifications")return <NotifsScreen notifs={notifs} setNotifs={setNotifs}/>;
+    if(screen==="settings")     return <SettingsScreen secSettings={secSettings} setSecSettings={setSecSettings}/>;
+    if(screen==="more")         return <MoreHub navigate={navigate} unread={unread}/>;
+    return <div style={{padding:"40px 24px",textAlign:"center",color:C.muted}}>Coming soon</div>;
+  };
+
+  return (
+    <ThemeCtx.Provider value={{C,isDark,toggleTheme}}>
+      <SecCtx.Provider value={{balHidden,setBalHidden}}>
+        <div style={{background:C.bg,minHeight:"100vh",maxWidth:430,margin:"0 auto",display:"flex",flexDirection:"column"}}>
+          <div style={{background:C.bg,padding:"9px 16px 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+            <span style={{color:C.text,fontSize:13,fontWeight:800}}>9:41</span>
+            <div style={{display:"flex",gap:10,alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:"50%",background:C.green}}/><span style={{color:C.muted,fontSize:10}}>Saved</span></div>
+              <button onClick={()=>setBalHidden(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14}}>{balHidden?"🙈":"👁️"}</button>
+              <button onClick={()=>setLocked(true)} style={{background:"none",border:"none",cursor:"pointer",color:C.muted,fontSize:14}}>🔒</button>
+            </div>
+          </div>
+          <div style={{flex:1,overflowY:"auto"}}>{screenEl()}</div>
+          <div style={{background:C.navBg,borderTop:`1px solid ${C.border}`,display:"flex",padding:"7px 0 16px",flexShrink:0}}>
+            {NAV.map(item=>{
+              const active=screen===item.id||(item.id==="more"&&!["home","advisor","goals","spends"].includes(screen));
+              return <button key={item.id} onClick={()=>navigate(item.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"none",border:"none",cursor:"pointer",padding:"4px 0",position:"relative"}}>
+                {active&&<div style={{position:"absolute",top:-7,width:22,height:3,background:C.gold,borderRadius:"0 0 3px 3px"}}/>}
+                <span style={{fontSize:18,opacity:active?1:0.45}}>{item.icon}</span>
+                <span style={{color:active?C.gold:C.muted,fontSize:9,fontWeight:active?800:500}}>{item.label}</span>
+              </button>;
+            })}
+          </div>
+        </div>
+      </SecCtx.Provider>
+    </ThemeCtx.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
