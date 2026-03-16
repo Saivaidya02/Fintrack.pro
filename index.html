@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    html,body,#root{height:100%}
+    html,body,#root{height:100%;min-height:100%}
     body{background:#07090F;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
     ::-webkit-scrollbar{display:none}*{scrollbar-width:none}
     #loading{position:fixed;inset:0;background:#07090F;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9999;transition:opacity .3s}
@@ -20,18 +20,12 @@
     .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#F59E0B;animation:blink 1.2s ease-in-out infinite}
     .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
   </style>
-  <script type="importmap">
-  {
-    "imports": {
-      "react": "https://esm.sh/react@18.3.1",
-      "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
-      "react-dom": "https://esm.sh/react-dom@18.3.1",
-      "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-      "recharts": "https://esm.sh/recharts@2.12.7",
-      "lucide-react": "https://esm.sh/lucide-react@0.383.0"
-    }
-  }
-  </script>
+
+  <!-- React 18 UMD (loaded as classic scripts — no module system, no importmap) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <!-- Recharts UMD -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.5.0/Recharts.js"></script>
 </head>
 <body>
 <div id="loading">
@@ -40,10 +34,11 @@
   <div style="display:flex;gap:6px"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
 </div>
 <div id="root"></div>
-<script type="module">
-import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
-import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
-import { PieChart, Pie, Cell, Sector, ResponsiveContainer } from "recharts";
+<script>
+(function() {
+const React = window.React;
+const react_1 = window.React;
+const recharts_1 = window.Recharts;
 // ══════════════════════════════════════════════════════════════════════════════
 // THEME
 // ══════════════════════════════════════════════════════════════════════════════
@@ -51,15 +46,15 @@ const THEMES = {
     dark: { bg: "#07090F", card: "#0E1520", card2: "#141E2E", border: "#1C2A42", gold: "#F59E0B", green: "#10B981", red: "#EF4444", blue: "#3B82F6", purple: "#8B5CF6", teal: "#14B8A6", muted: "#566580", text: "#E2E8F0", navBg: "#0A1119" },
     light: { bg: "#F0F4FA", card: "#FFFFFF", card2: "#EBF0FA", border: "#D8E2F0", gold: "#D97706", green: "#059669", red: "#DC2626", blue: "#2563EB", purple: "#7C3AED", teal: "#0D9488", muted: "#6B7280", text: "#111827", navBg: "#FFFFFF" },
 };
-const ThemeCtx = createContext({});
-const SecCtx = createContext({});
-const useTheme = () => useContext(ThemeCtx);
-const useSec = () => useContext(SecCtx);
+const ThemeCtx = (0, react_1.createContext)({});
+const SecCtx = (0, react_1.createContext)({});
+const useTheme = () => (0, react_1.useContext)(ThemeCtx);
+const useSec = () => (0, react_1.useContext)(SecCtx);
 // ══════════════════════════════════════════════════════════════════════════════
 // LOCALSTORAGE
 // ══════════════════════════════════════════════════════════════════════════════
 function useLS(key, def) {
-    const [v, setV] = useState(() => {
+    const [v, setV] = (0, react_1.useState)(() => {
         try {
             const s = localStorage.getItem(key);
             return s ? JSON.parse(s) : def;
@@ -68,7 +63,7 @@ function useLS(key, def) {
             return def;
         }
     });
-    const save = useCallback((nv) => {
+    const save = (0, react_1.useCallback)((nv) => {
         setV(prev => {
             const next = typeof nv === "function" ? nv(prev) : nv;
             try {
@@ -89,9 +84,9 @@ const pctChg = (c, o) => o ? (((c - o) / o) * 100).toFixed(1) : "0.0";
 const daysLeft = d => Math.max(0, Math.ceil((new Date(d) - new Date()) / 86400000));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
 const useCountUp = (target, dur = 1100) => {
-    const [v, setV] = useState(0);
-    const r = useRef(null);
-    useEffect(() => {
+    const [v, setV] = (0, react_1.useState)(0);
+    const r = (0, react_1.useRef)(null);
+    (0, react_1.useEffect)(() => {
         r.current = null;
         const go = ts => { if (!r.current)
             r.current = ts; const p = Math.min((ts - r.current) / dur, 1); setV(Math.round(target * (1 - Math.pow(1 - p, 3)))); if (p < 1)
@@ -122,26 +117,30 @@ const ECATS = [
 // ══════════════════════════════════════════════════════════════════════════════
 // SHARED COMPONENTS
 // ══════════════════════════════════════════════════════════════════════════════
-const Pill = ({ text, color }) => (_jsx("span", { style: { background: color + "22", color, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, whiteSpace: "nowrap", border: `1px solid ${color}30` }, children: text }));
+const Pill = ({ text, color }) => (React.createElement("span", { style: { background: color + "22", color, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, whiteSpace: "nowrap", border: `1px solid ${color}30` } }, text));
 function Card({ children, style: st = {} }) {
     const { C } = useTheme();
-    return _jsx("div", { style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, padding: 16, ...st }, children: children });
+    return React.createElement("div", { style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, padding: 16, ...st } }, children);
 }
 function SectionTitle({ children }) {
     const { C } = useTheme();
-    return _jsx("p", { style: { color: C.muted, fontSize: 10, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", margin: "20px 0 10px" }, children: children });
+    return React.createElement("p", { style: { color: C.muted, fontSize: 10, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", margin: "20px 0 10px" } }, children);
 }
 function Toggle({ value, onChange, color }) {
     const { C } = useTheme();
-    return (_jsx("div", { onClick: () => onChange(!value), style: { width: 46, height: 26, borderRadius: 13, background: value ? (color || C.green) : C.border, cursor: "pointer", position: "relative", transition: "background .25s", flexShrink: 0 }, children: _jsx("div", { style: { position: "absolute", top: 3, left: value ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .25s", boxShadow: "0 1px 4px #0004" } }) }));
+    return (React.createElement("div", { onClick: () => onChange(!value), style: { width: 46, height: 26, borderRadius: 13, background: value ? (color || C.green) : C.border, cursor: "pointer", position: "relative", transition: "background .25s", flexShrink: 0 } },
+        React.createElement("div", { style: { position: "absolute", top: 3, left: value ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .25s", boxShadow: "0 1px 4px #0004" } })));
 }
 function MiniStat({ label, value, color, sub }) {
     const { C } = useTheme();
-    return (_jsxs("div", { style: { background: C.card2, borderRadius: 14, padding: "12px 14px", flex: 1, minWidth: 0 }, children: [_jsx("p", { style: { color: C.muted, fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 5px" }, children: label }), _jsx("p", { style: { color: color || C.text, fontSize: 16, fontWeight: 800, margin: "0 0 2px", fontFamily: "monospace" }, children: value }), sub && _jsx("p", { style: { color: C.muted, fontSize: 11, margin: 0 }, children: sub })] }));
+    return (React.createElement("div", { style: { background: C.card2, borderRadius: 14, padding: "12px 14px", flex: 1, minWidth: 0 } },
+        React.createElement("p", { style: { color: C.muted, fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 5px" } }, label),
+        React.createElement("p", { style: { color: color || C.text, fontSize: 16, fontWeight: 800, margin: "0 0 2px", fontFamily: "monospace" } }, value),
+        sub && React.createElement("p", { style: { color: C.muted, fontSize: 11, margin: 0 } }, sub)));
 }
 function Tabs({ tabs, active, onChange }) {
     const { C } = useTheme();
-    return (_jsx("div", { style: { display: "flex", gap: 6, overflowX: "auto", marginBottom: 14, scrollbarWidth: "none", paddingBottom: 2 }, children: tabs.map(t => _jsx("button", { onClick: () => onChange(t), style: { background: active === t ? C.gold : C.card2, border: `1px solid ${active === t ? C.gold : C.border}`, borderRadius: 20, padding: "6px 14px", color: active === t ? "#000" : C.muted, fontSize: 12, fontWeight: active === t ? 700 : 500, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }, children: t }, t)) }));
+    return (React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", marginBottom: 14, scrollbarWidth: "none", paddingBottom: 2 } }, tabs.map(t => React.createElement("button", { key: t, onClick: () => onChange(t), style: { background: active === t ? C.gold : C.card2, border: `1px solid ${active === t ? C.gold : C.border}`, borderRadius: 20, padding: "6px 14px", color: active === t ? "#000" : C.muted, fontSize: 12, fontWeight: active === t ? 700 : 500, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 } }, t))));
 }
 // masked = true means user hasn't entered data yet → show ₹ ****
 function AnimBal({ target, size = 18, color, style: st = {}, masked = false }) {
@@ -150,37 +149,45 @@ function AnimBal({ target, size = 18, color, style: st = {}, masked = false }) {
     const { C } = useTheme();
     const hide = balHidden || masked;
     const display = masked ? "₹ ••••••" : fmtINR(val);
-    return _jsx("span", { style: { fontSize: size, fontWeight: 800, fontFamily: "monospace", color: color || C.text, filter: (!masked && balHidden) ? "blur(8px)" : "none", letterSpacing: masked ? "0.1em" : "normal", transition: "filter .3s", ...st }, children: display });
+    return React.createElement("span", { style: { fontSize: size, fontWeight: 800, fontFamily: "monospace", color: color || C.text, filter: (!masked && balHidden) ? "blur(8px)" : "none", letterSpacing: masked ? "0.1em" : "normal", transition: "filter .3s", ...st } }, display);
 }
 function Bal({ value, size = 14, style: st = {}, masked = false }) {
     const { balHidden } = useSec();
     const { C } = useTheme();
     const display = masked ? "••••••" : value;
-    return _jsx("span", { style: { fontSize: size, fontWeight: 800, fontFamily: "monospace", color: C.text, filter: (!masked && balHidden) ? "blur(8px)" : "none", letterSpacing: masked ? "0.1em" : "normal", transition: "filter .3s", ...st }, children: display });
+    return React.createElement("span", { style: { fontSize: size, fontWeight: 800, fontFamily: "monospace", color: C.text, filter: (!masked && balHidden) ? "blur(8px)" : "none", letterSpacing: masked ? "0.1em" : "normal", transition: "filter .3s", ...st } }, display);
 }
 function Confetti({ active }) {
-    const p = useMemo(() => Array.from({ length: 24 }).map((_, i) => ({ left: (i * 4.2 + (i % 6) * 5) % 100, delay: (i * 0.07) % 0.9, dur: 1.5 + (i * 0.1) % 1.2, emoji: ["🎉", "✨", "🎊", "💰", "🌟", "💎"][i % 6], size: 12 + (i % 4) * 5 })), []);
+    const p = (0, react_1.useMemo)(() => Array.from({ length: 24 }).map((_, i) => ({ left: (i * 4.2 + (i % 6) * 5) % 100, delay: (i * 0.07) % 0.9, dur: 1.5 + (i * 0.1) % 1.2, emoji: ["🎉", "✨", "🎊", "💰", "🌟", "💎"][i % 6], size: 12 + (i % 4) * 5 })), []);
     if (!active)
         return null;
-    return (_jsxs("div", { style: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999, overflow: "hidden" }, children: [_jsx("style", { children: `@keyframes cfall{0%{transform:translateY(-40px) rotate(0deg);opacity:1}100%{transform:translateY(900px) rotate(540deg);opacity:0}}` }), p.map((x, i) => _jsx("div", { style: { position: "absolute", left: x.left + "%", top: 0, fontSize: x.size, animation: `cfall ${x.dur}s ${x.delay}s ease-in forwards` }, children: x.emoji }, i))] }));
+    return (React.createElement("div", { style: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999, overflow: "hidden" } },
+        React.createElement("style", null, `@keyframes cfall{0%{transform:translateY(-40px) rotate(0deg);opacity:1}100%{transform:translateY(900px) rotate(540deg);opacity:0}}`),
+        p.map((x, i) => React.createElement("div", { key: i, style: { position: "absolute", left: x.left + "%", top: 0, fontSize: x.size, animation: `cfall ${x.dur}s ${x.delay}s ease-in forwards` } }, x.emoji))));
 }
 function Sheet({ children, onClose, title }) {
     const { C } = useTheme();
-    return (_jsx("div", { style: { position: "fixed", inset: 0, background: "rgba(0,0,0,.82)", zIndex: 80, display: "flex", alignItems: "flex-end", justifyContent: "center" }, children: _jsxs("div", { style: { background: C.card, borderRadius: "22px 22px 0 0", padding: "20px 18px 44px", width: "100%", maxWidth: 430, maxHeight: "90vh", overflowY: "auto", animation: "sUp .3s cubic-bezier(.32,.72,0,1)" }, children: [_jsx("style", { children: `@keyframes sUp{from{transform:translateY(80px);opacity:0}to{transform:translateY(0);opacity:1}}` }), _jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }, children: [_jsx("p", { style: { color: C.text, fontSize: 16, fontWeight: 800, margin: 0 }, children: title }), _jsx("button", { onClick: onClose, style: { background: C.card2, border: "none", borderRadius: 10, padding: "7px 10px", cursor: "pointer", color: C.muted, fontSize: 16 }, children: "\u2715" })] }), children] }) }));
+    return (React.createElement("div", { style: { position: "fixed", inset: 0, background: "rgba(0,0,0,.82)", zIndex: 80, display: "flex", alignItems: "flex-end", justifyContent: "center" } },
+        React.createElement("div", { style: { background: C.card, borderRadius: "22px 22px 0 0", padding: "20px 18px 44px", width: "100%", maxWidth: 430, maxHeight: "90vh", overflowY: "auto", animation: "sUp .3s cubic-bezier(.32,.72,0,1)" } },
+            React.createElement("style", null, `@keyframes sUp{from{transform:translateY(80px);opacity:0}to{transform:translateY(0);opacity:1}}`),
+            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 } },
+                React.createElement("p", { style: { color: C.text, fontSize: 16, fontWeight: 800, margin: 0 } }, title),
+                React.createElement("button", { onClick: onClose, style: { background: C.card2, border: "none", borderRadius: 10, padding: "7px 10px", cursor: "pointer", color: C.muted, fontSize: 16 } }, "\u2715")),
+            children)));
 }
-const Inp = ({ C, ...p }) => _jsx("input", { ...p, style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", color: C.text, fontSize: 14, width: "100%", boxSizing: "border-box", outline: "none", ...p.style } });
-const Lbl = ({ C, children }) => _jsx("p", { style: { color: C.muted, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", margin: "10px 0 4px" }, children: children });
-const GoldBtn = ({ onClick, children, style: st = {} }) => { const { C } = useTheme(); return _jsx("button", { onClick: onClick, style: { width: "100%", background: C.gold, border: "none", borderRadius: 14, padding: 13, cursor: "pointer", color: "#000", fontSize: 14, fontWeight: 800, marginTop: 12, ...st }, children: children }); };
+const Inp = ({ C, ...p }) => React.createElement("input", { ...p, style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", color: C.text, fontSize: 14, width: "100%", boxSizing: "border-box", outline: "none", ...p.style } });
+const Lbl = ({ C, children }) => React.createElement("p", { style: { color: C.muted, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", margin: "10px 0 4px" } }, children);
+const GoldBtn = ({ onClick, children, style: st = {} }) => { const { C } = useTheme(); return React.createElement("button", { onClick: onClick, style: { width: "100%", background: C.gold, border: "none", borderRadius: 14, padding: 13, cursor: "pointer", color: "#000", fontSize: 14, fontWeight: 800, marginTop: 12, ...st } }, children); };
 // ══════════════════════════════════════════════════════════════════════════════
 // LOCK SCREEN
 // ══════════════════════════════════════════════════════════════════════════════
 function LockScreen({ onUnlock }) {
     const { C } = useTheme();
-    const [mode, setMode] = useState("bio");
-    const [pin, setPin] = useState("");
-    const [err, setErr] = useState("");
-    const [ba, setBa] = useState(false);
-    const [bd, setBd] = useState(false);
+    const [mode, setMode] = (0, react_1.useState)("bio");
+    const [pin, setPin] = (0, react_1.useState)("");
+    const [err, setErr] = (0, react_1.useState)("");
+    const [ba, setBa] = (0, react_1.useState)(false);
+    const [bd, setBd] = (0, react_1.useState)(false);
     const tryBio = () => { setBa(true); setTimeout(() => { setBd(true); setTimeout(onUnlock, 500); }, 1200); };
     const press = d => {
         if (pin.length < 6) {
@@ -196,31 +203,67 @@ function LockScreen({ onUnlock }) {
             }
         }
     };
-    return (_jsxs("div", { style: { position: "fixed", inset: 0, background: C.bg, zIndex: 999, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", padding: "56px 30px 44px" }, children: [_jsxs("div", { style: { textAlign: "center" }, children: [_jsx("div", { style: { width: 60, height: 60, borderRadius: 18, background: C.card, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 26 }, children: "\uD83D\uDD10" }), _jsx("p", { style: { color: C.text, fontSize: 22, fontWeight: 900, margin: "0 0 4px" }, children: "FinTrack Pro" }), _jsx("p", { style: { color: C.muted, fontSize: 12, margin: 0 }, children: "Locked for your security" })] }), _jsx("div", { style: { width: "100%" }, children: mode === "bio" ? (_jsxs("div", { style: { textAlign: "center" }, children: [_jsx("div", { onClick: tryBio, style: { cursor: "pointer", width: 106, height: 106, borderRadius: "50%", border: `3px solid ${bd ? C.green : ba ? C.gold : C.border}`, margin: "0 auto 18px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 38, background: C.card, transition: "border-color .3s" }, children: bd ? "✅" : "👆" }), _jsx("p", { style: { color: C.text, fontSize: 14, fontWeight: 700, margin: "0 0 5px" }, children: bd ? "Unlocked!" : ba ? "Scanning…" : "Tap to unlock" }), _jsx("p", { style: { color: C.muted, fontSize: 12, margin: "0 0 20px" }, children: "Fingerprint \u00B7 Face ID" }), _jsx("button", { onClick: () => setMode("pin"), style: { background: "none", border: "none", color: C.gold, fontSize: 13, fontWeight: 700, cursor: "pointer" }, children: "Use PIN \u2192" })] })) : (_jsxs("div", { style: { display: "flex", flexDirection: "column", alignItems: "center" }, children: [_jsx("p", { style: { color: C.text, fontSize: 16, fontWeight: 800, margin: "0 0 4px" }, children: "Enter PIN" }), _jsx("p", { style: { color: C.muted, fontSize: 12, margin: "0 0 20px" }, children: "Demo: 1 2 3 4 5 6" }), _jsx("div", { style: { display: "flex", gap: 14, marginBottom: 20 }, children: Array.from({ length: 6 }).map((_, i) => _jsx("div", { style: { width: 13, height: 13, borderRadius: "50%", background: i < pin.length ? C.gold : "transparent", border: `2px solid ${i < pin.length ? C.gold : C.border}`, transition: "all .15s" } }, i)) }), err && _jsx("p", { style: { color: C.red, fontSize: 12, fontWeight: 700, margin: "-6px 0 12px" }, children: err }), _jsx("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,68px)", gap: 10 }, children: [1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, "⌫"].map((k, i) => (_jsx("button", { onClick: () => k === "⌫" ? setPin(p => p.slice(0, -1)) : k !== "" ? press(String(k)) : null, style: { width: 68, height: 68, borderRadius: "50%", background: k === "" ? "transparent" : C.card, border: k === "" ? "none" : `1px solid ${C.border}`, color: C.text, fontSize: k === "⌫" ? 18 : 20, fontWeight: 700, cursor: k === "" ? "default" : "pointer" }, children: k }, i))) }), _jsx("button", { onClick: () => setMode("bio"), style: { background: "none", border: "none", color: C.gold, fontSize: 13, fontWeight: 700, cursor: "pointer", marginTop: 16 }, children: "\u2190 Biometric" })] })) }), _jsx("p", { style: { color: C.muted, fontSize: 10 }, children: "\uD83D\uDD12 AES-256 \u00B7 RBI-compliant" })] }));
+    return (React.createElement("div", { style: { position: "fixed", inset: 0, background: C.bg, zIndex: 999, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", padding: "56px 30px 44px" } },
+        React.createElement("div", { style: { textAlign: "center" } },
+            React.createElement("div", { style: { width: 60, height: 60, borderRadius: 18, background: C.card, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 26 } }, "\uD83D\uDD10"),
+            React.createElement("p", { style: { color: C.text, fontSize: 22, fontWeight: 900, margin: "0 0 4px" } }, "FinTrack Pro"),
+            React.createElement("p", { style: { color: C.muted, fontSize: 12, margin: 0 } }, "Locked for your security")),
+        React.createElement("div", { style: { width: "100%" } }, mode === "bio" ? (React.createElement("div", { style: { textAlign: "center" } },
+            React.createElement("div", { onClick: tryBio, style: { cursor: "pointer", width: 106, height: 106, borderRadius: "50%", border: `3px solid ${bd ? C.green : ba ? C.gold : C.border}`, margin: "0 auto 18px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 38, background: C.card, transition: "border-color .3s" } }, bd ? "✅" : "👆"),
+            React.createElement("p", { style: { color: C.text, fontSize: 14, fontWeight: 700, margin: "0 0 5px" } }, bd ? "Unlocked!" : ba ? "Scanning…" : "Tap to unlock"),
+            React.createElement("p", { style: { color: C.muted, fontSize: 12, margin: "0 0 20px" } }, "Fingerprint \u00B7 Face ID"),
+            React.createElement("button", { onClick: () => setMode("pin"), style: { background: "none", border: "none", color: C.gold, fontSize: 13, fontWeight: 700, cursor: "pointer" } }, "Use PIN \u2192"))) : (React.createElement("div", { style: { display: "flex", flexDirection: "column", alignItems: "center" } },
+            React.createElement("p", { style: { color: C.text, fontSize: 16, fontWeight: 800, margin: "0 0 4px" } }, "Enter PIN"),
+            React.createElement("p", { style: { color: C.muted, fontSize: 12, margin: "0 0 20px" } }, "Demo: 1 2 3 4 5 6"),
+            React.createElement("div", { style: { display: "flex", gap: 14, marginBottom: 20 } }, Array.from({ length: 6 }).map((_, i) => React.createElement("div", { key: i, style: { width: 13, height: 13, borderRadius: "50%", background: i < pin.length ? C.gold : "transparent", border: `2px solid ${i < pin.length ? C.gold : C.border}`, transition: "all .15s" } }))),
+            err && React.createElement("p", { style: { color: C.red, fontSize: 12, fontWeight: 700, margin: "-6px 0 12px" } }, err),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,68px)", gap: 10 } }, [1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, "⌫"].map((k, i) => (React.createElement("button", { key: i, onClick: () => k === "⌫" ? setPin(p => p.slice(0, -1)) : k !== "" ? press(String(k)) : null, style: { width: 68, height: 68, borderRadius: "50%", background: k === "" ? "transparent" : C.card, border: k === "" ? "none" : `1px solid ${C.border}`, color: C.text, fontSize: k === "⌫" ? 18 : 20, fontWeight: 700, cursor: k === "" ? "default" : "pointer" } }, k)))),
+            React.createElement("button", { onClick: () => setMode("bio"), style: { background: "none", border: "none", color: C.gold, fontSize: 13, fontWeight: 700, cursor: "pointer", marginTop: 16 } }, "\u2190 Biometric")))),
+        React.createElement("p", { style: { color: C.muted, fontSize: 10 } }, "\uD83D\uDD12 AES-256 \u00B7 RBI-compliant")));
 }
 // ══════════════════════════════════════════════════════════════════════════════
 // ONBOARDING
 // ══════════════════════════════════════════════════════════════════════════════
 function Onboarding({ onComplete }) {
     const { C } = useTheme();
-    const [step, setStep] = useState(0);
-    const [form, setForm] = useState({ name: "", income: "85000", budget: "60000", risk: "moderate" });
+    const [step, setStep] = (0, react_1.useState)(0);
+    const [form, setForm] = (0, react_1.useState)({ name: "", income: "85000", budget: "60000", risk: "moderate" });
     const steps = [
         { emoji: "💰", title: "Welcome to\nFinTrack Pro", sub: "India's smartest personal finance app. Set it up once — every number is yours to edit anytime.", btn: "Get Started →", content: null },
-        { emoji: "👤", title: "Your Details", sub: "These can be changed anytime in Settings.", btn: "Continue", content: (_jsxs("div", { style: { display: "flex", flexDirection: "column", gap: 2 }, children: [_jsx(Lbl, { C: C, children: "Your Name" }), _jsx(Inp, { C: C, placeholder: "Rahul Sharma", value: form.name, onChange: e => setForm(f => ({ ...f, name: e.target.value })) }), _jsx(Lbl, { C: C, children: "Monthly Income (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "85000", value: form.income, onChange: e => setForm(f => ({ ...f, income: e.target.value })) }), _jsx(Lbl, { C: C, children: "Monthly Budget (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "60000", value: form.budget, onChange: e => setForm(f => ({ ...f, budget: e.target.value })) })] })) },
-        { emoji: "📊", title: "Risk Profile", sub: "How do you prefer to invest?", btn: "Start Tracking 🚀", content: (_jsx("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: [["conservative", "🛡️", "Conservative", "FDs, PPF, Bonds — safety first"], ["moderate", "⚖️", "Moderate", "Mix of equity & debt"], ["aggressive", "🚀", "Aggressive", "Mostly equity — max returns"]].map(([k, ic, l, d]) => (_jsxs("div", { onClick: () => setForm(f => ({ ...f, risk: k })), style: { background: form.risk === k ? C.gold + "18" : C.card2, border: `2px solid ${form.risk === k ? C.gold : C.border}`, borderRadius: 14, padding: "13px 15px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }, children: [_jsx("span", { style: { fontSize: 22 }, children: ic }), _jsxs("div", { style: { flex: 1 }, children: [_jsx("p", { style: { color: form.risk === k ? C.gold : C.text, fontSize: 14, fontWeight: 700, margin: "0 0 2px" }, children: l }), _jsx("p", { style: { color: C.muted, fontSize: 11, margin: 0 }, children: d })] }), form.risk === k && _jsx("span", { style: { color: C.gold }, children: "\u2713" })] }, k))) })) },
+        { emoji: "👤", title: "Your Details", sub: "These can be changed anytime in Settings.", btn: "Continue", content: (React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 2 } },
+                React.createElement(Lbl, { C: C }, "Your Name"),
+                React.createElement(Inp, { C: C, placeholder: "Rahul Sharma", value: form.name, onChange: e => setForm(f => ({ ...f, name: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Monthly Income (\u20B9)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "85000", value: form.income, onChange: e => setForm(f => ({ ...f, income: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Monthly Budget (\u20B9)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "60000", value: form.budget, onChange: e => setForm(f => ({ ...f, budget: e.target.value })) }))) },
+        { emoji: "📊", title: "Risk Profile", sub: "How do you prefer to invest?", btn: "Start Tracking 🚀", content: (React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, [["conservative", "🛡️", "Conservative", "FDs, PPF, Bonds — safety first"], ["moderate", "⚖️", "Moderate", "Mix of equity & debt"], ["aggressive", "🚀", "Aggressive", "Mostly equity — max returns"]].map(([k, ic, l, d]) => (React.createElement("div", { key: k, onClick: () => setForm(f => ({ ...f, risk: k })), style: { background: form.risk === k ? C.gold + "18" : C.card2, border: `2px solid ${form.risk === k ? C.gold : C.border}`, borderRadius: 14, padding: "13px 15px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 } },
+                React.createElement("span", { style: { fontSize: 22 } }, ic),
+                React.createElement("div", { style: { flex: 1 } },
+                    React.createElement("p", { style: { color: form.risk === k ? C.gold : C.text, fontSize: 14, fontWeight: 700, margin: "0 0 2px" } }, l),
+                    React.createElement("p", { style: { color: C.muted, fontSize: 11, margin: 0 } }, d)),
+                form.risk === k && React.createElement("span", { style: { color: C.gold } }, "\u2713")))))) },
     ];
     const s = steps[step];
-    return (_jsxs("div", { style: { position: "fixed", inset: 0, background: C.bg, zIndex: 998, display: "flex", flexDirection: "column", padding: "44px 22px 32px", maxWidth: 430, margin: "0 auto" }, children: [_jsx("div", { style: { display: "flex", gap: 6, justifyContent: "center", marginBottom: 28 }, children: steps.map((_, i) => _jsx("div", { style: { width: i === step ? 22 : 7, height: 7, borderRadius: 4, background: i === step ? C.gold : C.border, transition: "all .3s" } }, i)) }), _jsxs("div", { style: { flex: 1 }, children: [_jsxs("div", { style: { textAlign: "center", marginBottom: 24 }, children: [_jsx("span", { style: { fontSize: 48, display: "block", marginBottom: 14 }, children: s.emoji }), _jsx("p", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "0 0 6px", whiteSpace: "pre-line", lineHeight: 1.25 }, children: s.title }), _jsx("p", { style: { color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.6 }, children: s.sub })] }), s.content] }), _jsx("button", { onClick: () => step < steps.length - 1 ? setStep(s => s + 1) : onComplete(form), style: { width: "100%", background: C.gold, border: "none", borderRadius: 16, padding: 15, cursor: "pointer", color: "#000", fontSize: 15, fontWeight: 800 }, children: s.btn }), step > 0 && _jsx("button", { onClick: () => setStep(s => s - 1), style: { background: "none", border: "none", color: C.muted, fontSize: 13, cursor: "pointer", marginTop: 10, display: "block", textAlign: "center" }, children: "\u2190 Back" })] }));
+    return (React.createElement("div", { style: { position: "fixed", inset: 0, background: C.bg, zIndex: 998, display: "flex", flexDirection: "column", padding: "44px 22px 32px", maxWidth: 430, margin: "0 auto" } },
+        React.createElement("div", { style: { display: "flex", gap: 6, justifyContent: "center", marginBottom: 28 } }, steps.map((_, i) => React.createElement("div", { key: i, style: { width: i === step ? 22 : 7, height: 7, borderRadius: 4, background: i === step ? C.gold : C.border, transition: "all .3s" } }))),
+        React.createElement("div", { style: { flex: 1 } },
+            React.createElement("div", { style: { textAlign: "center", marginBottom: 24 } },
+                React.createElement("span", { style: { fontSize: 48, display: "block", marginBottom: 14 } }, s.emoji),
+                React.createElement("p", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "0 0 6px", whiteSpace: "pre-line", lineHeight: 1.25 } }, s.title),
+                React.createElement("p", { style: { color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.6 } }, s.sub)),
+            s.content),
+        React.createElement("button", { onClick: () => step < steps.length - 1 ? setStep(s => s + 1) : onComplete(form), style: { width: "100%", background: C.gold, border: "none", borderRadius: 16, padding: 15, cursor: "pointer", color: "#000", fontSize: 15, fontWeight: 800 } }, s.btn),
+        step > 0 && React.createElement("button", { onClick: () => setStep(s => s - 1), style: { background: "none", border: "none", color: C.muted, fontSize: 13, cursor: "pointer", marginTop: 10, display: "block", textAlign: "center" } }, "\u2190 Back")));
 }
 // ══════════════════════════════════════════════════════════════════════════════
 // PORTFOLIO SCREEN — fully editable
 // ══════════════════════════════════════════════════════════════════════════════
 function PortfolioScreen({ portfolio, setPortfolio }) {
     const { C } = useTheme();
-    const [tab, setTab] = useState("Stocks");
-    const [sheet, setSheet] = useState(null); // { type, item? }
-    const [form, setForm] = useState({});
+    const [tab, setTab] = (0, react_1.useState)("Stocks");
+    const [sheet, setSheet] = (0, react_1.useState)(null); // { type, item? }
+    const [form, setForm] = (0, react_1.useState)({});
     const openAdd = (type) => {
         const blanks = {
             Stocks: { name: "", sym: "", buyPrice: "", currentPrice: "", units: "" },
@@ -264,37 +307,122 @@ function PortfolioScreen({ portfolio, setPortfolio }) {
     const totalGold = (p.gold || []).reduce((s, g) => s + g.grams * g.currentRatePerGram, 0);
     const totalGovt = (p.govt || []).reduce((s, g) => s + g.balance, 0);
     const totalNW = totalStocks + totalCrypto + totalMF + totalFD + totalGold + totalGovt;
-    const ItemRow = ({ label, value, sub, color, onEdit, onDel }) => (_jsxs("div", { style: { background: C.card2, borderRadius: 13, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }, children: [_jsxs("div", { style: { flex: 1 }, children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: "0 0 3px" }, children: label }), sub && _jsx("p", { style: { color: C.muted, fontSize: 11, margin: 0 }, children: sub })] }), _jsxs("div", { style: { textAlign: "right", marginRight: 8 }, children: [_jsx("p", { style: { color: C.text, fontSize: 14, fontWeight: 800, margin: "0 0 2px", fontFamily: "monospace" }, children: value }), color && _jsx("p", { style: { color, fontSize: 11, fontWeight: 700, margin: 0 }, children: color === C.green ? "▲" : "▼" })] }), _jsx("button", { onClick: onEdit, style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 9, padding: "6px 9px", cursor: "pointer", color: C.muted, fontSize: 13 }, children: "\u270F\uFE0F" }), _jsx("button", { onClick: onDel, style: { background: C.red + "18", border: "none", borderRadius: 9, padding: "6px 9px", cursor: "pointer", color: C.red, fontSize: 13 }, children: "\uD83D\uDDD1" })] }));
-    return (_jsxs("div", { style: { padding: "0 14px 90px" }, children: [_jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 6px" }, children: [_jsxs("div", { children: [_jsx("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "0 0 2px" }, children: "Portfolio" }), _jsx("p", { style: { color: C.muted, fontSize: 12, margin: 0 }, children: "Tap \u270F\uFE0F on any item to edit" })] }), _jsx(AnimBal, { target: totalNW, size: 18, color: C.gold })] }), _jsx(Tabs, { tabs: ["Stocks", "Crypto", "MF", "FD/RD", "Gold", "PPF/NPS"], active: tab, onChange: setTab }), tab === "Stocks" && (_jsxs("div", { children: [(p.stocks || []).map(i => {
-                        const gain = i.currentPrice - i.buyPrice;
-                        const up = gain >= 0;
-                        return _jsx(ItemRow, { label: i.name, sub: `${i.sym} · ${i.units} units · Bought: ${fmtINR(i.buyPrice)}`, value: fmtINR(i.currentPrice), color: up ? C.green : C.red, onEdit: () => openEdit("Stocks", i), onDel: () => del("Stocks", i.id) }, i.id);
-                    }), _jsx("button", { onClick: () => openAdd("Stocks"), style: { width: "100%", background: C.card, border: `2px dashed ${C.border}`, borderRadius: 13, padding: "13px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 }, children: "+ Add Stock" })] })), tab === "Crypto" && (_jsxs("div", { children: [(p.crypto || []).map(i => {
-                        const gain = i.currentPrice - i.buyPrice;
-                        const up = gain >= 0;
-                        return _jsx(ItemRow, { label: i.name, sub: `${i.sym} · ${i.units} units · Bought: ${fmtINR(i.buyPrice)}`, value: fmtINR(i.currentPrice), color: up ? C.green : C.red, onEdit: () => openEdit("Crypto", i), onDel: () => del("Crypto", i.id) }, i.id);
-                    }), _jsx("button", { onClick: () => openAdd("Crypto"), style: { width: "100%", background: C.card, border: `2px dashed ${C.border}`, borderRadius: 13, padding: "13px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 }, children: "+ Add Crypto" })] })), tab === "MF" && (_jsxs("div", { children: [(p.mutualFunds || []).map(i => {
-                        const gain = i.currentValue - i.invested;
-                        const up = gain >= 0;
-                        const xirr = (((i.currentValue / i.invested) ** (12 / Math.max(i.months, 1)) - 1) * 100).toFixed(1);
-                        return _jsx(ItemRow, { label: i.name, sub: `SIP: ${fmtINR(i.sipAmt)}/mo · ${i.months}mo · XIRR: ${xirr}%`, value: fmtINR(i.currentValue), color: up ? C.green : C.red, onEdit: () => openEdit("MF", i), onDel: () => del("MF", i.id) }, i.id);
-                    }), _jsx("button", { onClick: () => openAdd("MF"), style: { width: "100%", background: C.card, border: `2px dashed ${C.border}`, borderRadius: 13, padding: "13px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 }, children: "+ Add Mutual Fund" })] })), tab === "FD/RD" && (_jsxs("div", { children: [(p.fds || []).map(i => (_jsx(ItemRow, { label: i.name, sub: `${i.bank} · ${i.rate}% · Matures: ${i.maturity}`, value: fmtFull(i.principal), onEdit: () => openEdit("FD", i), onDel: () => del("FD", i.id) }, i.id))), _jsx("button", { onClick: () => openAdd("FD"), style: { width: "100%", background: C.card, border: `2px dashed ${C.border}`, borderRadius: 13, padding: "13px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 }, children: "+ Add FD / RD" })] })), tab === "Gold" && (_jsxs("div", { children: [(p.gold || []).map(i => {
-                        const cur = i.grams * i.currentRatePerGram;
-                        const bought = i.grams * i.buyRatePerGram;
-                        const up = cur >= bought;
-                        return _jsx(ItemRow, { label: i.name, sub: `${i.grams}g · Bought @ ₹${i.buyRatePerGram}/g · Current @ ₹${i.currentRatePerGram}/g`, value: fmtINR(cur), color: up ? C.green : C.red, onEdit: () => openEdit("Gold", i), onDel: () => del("Gold", i.id) }, i.id);
-                    }), _jsx("button", { onClick: () => openAdd("Gold"), style: { width: "100%", background: C.card, border: `2px dashed ${C.border}`, borderRadius: 13, padding: "13px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 }, children: "+ Add Gold" })] })), tab === "PPF/NPS" && (_jsxs("div", { children: [(p.govt || []).map(i => (_jsx(ItemRow, { label: i.type, sub: `Yearly contribution: ${fmtINR(i.yearlyContrib)}`, value: fmtINR(i.balance), onEdit: () => openEdit("Govt", i), onDel: () => del("Govt", i.id) }, i.id))), _jsx("button", { onClick: () => openAdd("Govt"), style: { width: "100%", background: C.card, border: `2px dashed ${C.border}`, borderRadius: 13, padding: "13px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 }, children: "+ Add PPF / EPF / NPS" })] })), sheet && (_jsxs(Sheet, { title: `${sheet.item ? "Edit" : "Add"} ${sheet.type === "MF" ? "Mutual Fund" : sheet.type}`, onClose: () => setSheet(null), children: [(sheet.type === "Stocks" || sheet.type === "Crypto") && _jsxs(_Fragment, { children: [_jsx(Lbl, { C: C, children: "Name" }), _jsx(Inp, { C: C, placeholder: "Reliance Industries", value: form.name || "", onChange: e => setForm(f => ({ ...f, name: e.target.value })) }), _jsx(Lbl, { C: C, children: "Symbol" }), _jsx(Inp, { C: C, placeholder: "RELIANCE / BTC", value: form.sym || "", onChange: e => setForm(f => ({ ...f, sym: e.target.value })) }), _jsx(Lbl, { C: C, children: "Units Held" }), _jsx(Inp, { C: C, type: "number", placeholder: "100", value: form.units || "", onChange: e => setForm(f => ({ ...f, units: e.target.value })) }), _jsx(Lbl, { C: C, children: "Total Buy Price (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "50000", value: form.buyPrice || "", onChange: e => setForm(f => ({ ...f, buyPrice: e.target.value })) }), _jsx(Lbl, { C: C, children: "Current Value (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "62000", value: form.currentPrice || "", onChange: e => setForm(f => ({ ...f, currentPrice: e.target.value })) })] }), sheet.type === "MF" && _jsxs(_Fragment, { children: [_jsx(Lbl, { C: C, children: "Fund Name" }), _jsx(Inp, { C: C, placeholder: "Axis Blue Chip Fund", value: form.name || "", onChange: e => setForm(f => ({ ...f, name: e.target.value })) }), _jsx(Lbl, { C: C, children: "Total Invested (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "33000", value: form.invested || "", onChange: e => setForm(f => ({ ...f, invested: e.target.value })) }), _jsx(Lbl, { C: C, children: "Current Value (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "36500", value: form.currentValue || "", onChange: e => setForm(f => ({ ...f, currentValue: e.target.value })) }), _jsx(Lbl, { C: C, children: "Monthly SIP Amount (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "3000", value: form.sipAmt || "", onChange: e => setForm(f => ({ ...f, sipAmt: e.target.value })) }), _jsx(Lbl, { C: C, children: "Months Running" }), _jsx(Inp, { C: C, type: "number", placeholder: "11", value: form.months || "", onChange: e => setForm(f => ({ ...f, months: e.target.value })) })] }), sheet.type === "FD" && _jsxs(_Fragment, { children: [_jsx(Lbl, { C: C, children: "FD Name" }), _jsx(Inp, { C: C, placeholder: "SBI FD", value: form.name || "", onChange: e => setForm(f => ({ ...f, name: e.target.value })) }), _jsx(Lbl, { C: C, children: "Bank / Institution" }), _jsx(Inp, { C: C, placeholder: "SBI", value: form.bank || "", onChange: e => setForm(f => ({ ...f, bank: e.target.value })) }), _jsx(Lbl, { C: C, children: "Principal Amount (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "100000", value: form.principal || "", onChange: e => setForm(f => ({ ...f, principal: e.target.value })) }), _jsx(Lbl, { C: C, children: "Interest Rate (%)" }), _jsx(Inp, { C: C, type: "number", placeholder: "7.1", step: "0.1", value: form.rate || "", onChange: e => setForm(f => ({ ...f, rate: e.target.value })) }), _jsx(Lbl, { C: C, children: "Maturity Date" }), _jsx(Inp, { C: C, type: "date", value: form.maturity || "", onChange: e => setForm(f => ({ ...f, maturity: e.target.value })) })] }), sheet.type === "Gold" && _jsxs(_Fragment, { children: [_jsx(Lbl, { C: C, children: "Name" }), _jsx(Inp, { C: C, placeholder: "Physical Gold / SGB", value: form.name || "", onChange: e => setForm(f => ({ ...f, name: e.target.value })) }), _jsx(Lbl, { C: C, children: "Grams Held" }), _jsx(Inp, { C: C, type: "number", placeholder: "25", value: form.grams || "", onChange: e => setForm(f => ({ ...f, grams: e.target.value })) }), _jsx(Lbl, { C: C, children: "Buy Rate (\u20B9 per gram)" }), _jsx(Inp, { C: C, type: "number", placeholder: "6200", value: form.buyRatePerGram || "", onChange: e => setForm(f => ({ ...f, buyRatePerGram: e.target.value })) }), _jsx(Lbl, { C: C, children: "Current Rate (\u20B9 per gram)" }), _jsx(Inp, { C: C, type: "number", placeholder: "7180", value: form.currentRatePerGram || "", onChange: e => setForm(f => ({ ...f, currentRatePerGram: e.target.value })) })] }), sheet.type === "Govt" && _jsxs(_Fragment, { children: [_jsx(Lbl, { C: C, children: "Type" }), _jsx("select", { style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", color: C.text, fontSize: 14, width: "100%", outline: "none" }, value: form.type || "PPF", onChange: e => setForm(f => ({ ...f, type: e.target.value })), children: ["PPF", "EPF", "NPS", "SSY", "VPF"].map(t => _jsx("option", { children: t }, t)) }), _jsx(Lbl, { C: C, children: "Current Balance (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "285000", value: form.balance || "", onChange: e => setForm(f => ({ ...f, balance: e.target.value })) }), _jsx(Lbl, { C: C, children: "Yearly Contribution (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "150000", value: form.yearlyContrib || "", onChange: e => setForm(f => ({ ...f, yearlyContrib: e.target.value })) })] }), _jsx(GoldBtn, { onClick: save, children: "Save" })] }))] }));
+    const ItemRow = ({ label, value, sub, color, onEdit, onDel }) => (React.createElement("div", { style: { background: C.card2, borderRadius: 13, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 } },
+        React.createElement("div", { style: { flex: 1 } },
+            React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: "0 0 3px" } }, label),
+            sub && React.createElement("p", { style: { color: C.muted, fontSize: 11, margin: 0 } }, sub)),
+        React.createElement("div", { style: { textAlign: "right", marginRight: 8 } },
+            React.createElement("p", { style: { color: C.text, fontSize: 14, fontWeight: 800, margin: "0 0 2px", fontFamily: "monospace" } }, value),
+            color && React.createElement("p", { style: { color, fontSize: 11, fontWeight: 700, margin: 0 } }, color === C.green ? "▲" : "▼")),
+        React.createElement("button", { onClick: onEdit, style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 9, padding: "6px 9px", cursor: "pointer", color: C.muted, fontSize: 13 } }, "\u270F\uFE0F"),
+        React.createElement("button", { onClick: onDel, style: { background: C.red + "18", border: "none", borderRadius: 9, padding: "6px 9px", cursor: "pointer", color: C.red, fontSize: 13 } }, "\uD83D\uDDD1")));
+    return (React.createElement("div", { style: { padding: "0 14px 90px" } },
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 6px" } },
+            React.createElement("div", null,
+                React.createElement("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "0 0 2px" } }, "Portfolio"),
+                React.createElement("p", { style: { color: C.muted, fontSize: 12, margin: 0 } }, "Tap \u270F\uFE0F on any item to edit")),
+            React.createElement(AnimBal, { target: totalNW, size: 18, color: C.gold })),
+        React.createElement(Tabs, { tabs: ["Stocks", "Crypto", "MF", "FD/RD", "Gold", "PPF/NPS"], active: tab, onChange: setTab }),
+        tab === "Stocks" && (React.createElement("div", null,
+            (p.stocks || []).map(i => {
+                const gain = i.currentPrice - i.buyPrice;
+                const up = gain >= 0;
+                return React.createElement(ItemRow, { key: i.id, label: i.name, sub: `${i.sym} · ${i.units} units · Bought: ${fmtINR(i.buyPrice)}`, value: fmtINR(i.currentPrice), color: up ? C.green : C.red, onEdit: () => openEdit("Stocks", i), onDel: () => del("Stocks", i.id) });
+            }),
+            React.createElement("button", { onClick: () => openAdd("Stocks"), style: { width: "100%", background: C.card, border: `2px dashed ${C.border}`, borderRadius: 13, padding: "13px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 } }, "+ Add Stock"))),
+        tab === "Crypto" && (React.createElement("div", null,
+            (p.crypto || []).map(i => {
+                const gain = i.currentPrice - i.buyPrice;
+                const up = gain >= 0;
+                return React.createElement(ItemRow, { key: i.id, label: i.name, sub: `${i.sym} · ${i.units} units · Bought: ${fmtINR(i.buyPrice)}`, value: fmtINR(i.currentPrice), color: up ? C.green : C.red, onEdit: () => openEdit("Crypto", i), onDel: () => del("Crypto", i.id) });
+            }),
+            React.createElement("button", { onClick: () => openAdd("Crypto"), style: { width: "100%", background: C.card, border: `2px dashed ${C.border}`, borderRadius: 13, padding: "13px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 } }, "+ Add Crypto"))),
+        tab === "MF" && (React.createElement("div", null,
+            (p.mutualFunds || []).map(i => {
+                const gain = i.currentValue - i.invested;
+                const up = gain >= 0;
+                const xirr = (((i.currentValue / i.invested) ** (12 / Math.max(i.months, 1)) - 1) * 100).toFixed(1);
+                return React.createElement(ItemRow, { key: i.id, label: i.name, sub: `SIP: ${fmtINR(i.sipAmt)}/mo · ${i.months}mo · XIRR: ${xirr}%`, value: fmtINR(i.currentValue), color: up ? C.green : C.red, onEdit: () => openEdit("MF", i), onDel: () => del("MF", i.id) });
+            }),
+            React.createElement("button", { onClick: () => openAdd("MF"), style: { width: "100%", background: C.card, border: `2px dashed ${C.border}`, borderRadius: 13, padding: "13px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 } }, "+ Add Mutual Fund"))),
+        tab === "FD/RD" && (React.createElement("div", null,
+            (p.fds || []).map(i => (React.createElement(ItemRow, { key: i.id, label: i.name, sub: `${i.bank} · ${i.rate}% · Matures: ${i.maturity}`, value: fmtFull(i.principal), onEdit: () => openEdit("FD", i), onDel: () => del("FD", i.id) }))),
+            React.createElement("button", { onClick: () => openAdd("FD"), style: { width: "100%", background: C.card, border: `2px dashed ${C.border}`, borderRadius: 13, padding: "13px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 } }, "+ Add FD / RD"))),
+        tab === "Gold" && (React.createElement("div", null,
+            (p.gold || []).map(i => {
+                const cur = i.grams * i.currentRatePerGram;
+                const bought = i.grams * i.buyRatePerGram;
+                const up = cur >= bought;
+                return React.createElement(ItemRow, { key: i.id, label: i.name, sub: `${i.grams}g · Bought @ ₹${i.buyRatePerGram}/g · Current @ ₹${i.currentRatePerGram}/g`, value: fmtINR(cur), color: up ? C.green : C.red, onEdit: () => openEdit("Gold", i), onDel: () => del("Gold", i.id) });
+            }),
+            React.createElement("button", { onClick: () => openAdd("Gold"), style: { width: "100%", background: C.card, border: `2px dashed ${C.border}`, borderRadius: 13, padding: "13px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 } }, "+ Add Gold"))),
+        tab === "PPF/NPS" && (React.createElement("div", null,
+            (p.govt || []).map(i => (React.createElement(ItemRow, { key: i.id, label: i.type, sub: `Yearly contribution: ${fmtINR(i.yearlyContrib)}`, value: fmtINR(i.balance), onEdit: () => openEdit("Govt", i), onDel: () => del("Govt", i.id) }))),
+            React.createElement("button", { onClick: () => openAdd("Govt"), style: { width: "100%", background: C.card, border: `2px dashed ${C.border}`, borderRadius: 13, padding: "13px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 } }, "+ Add PPF / EPF / NPS"))),
+        sheet && (React.createElement(Sheet, { title: `${sheet.item ? "Edit" : "Add"} ${sheet.type === "MF" ? "Mutual Fund" : sheet.type}`, onClose: () => setSheet(null) },
+            (sheet.type === "Stocks" || sheet.type === "Crypto") && React.createElement(React.Fragment, null,
+                React.createElement(Lbl, { C: C }, "Name"),
+                React.createElement(Inp, { C: C, placeholder: "Reliance Industries", value: form.name || "", onChange: e => setForm(f => ({ ...f, name: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Symbol"),
+                React.createElement(Inp, { C: C, placeholder: "RELIANCE / BTC", value: form.sym || "", onChange: e => setForm(f => ({ ...f, sym: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Units Held"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "100", value: form.units || "", onChange: e => setForm(f => ({ ...f, units: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Total Buy Price (\u20B9)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "50000", value: form.buyPrice || "", onChange: e => setForm(f => ({ ...f, buyPrice: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Current Value (\u20B9)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "62000", value: form.currentPrice || "", onChange: e => setForm(f => ({ ...f, currentPrice: e.target.value })) })),
+            sheet.type === "MF" && React.createElement(React.Fragment, null,
+                React.createElement(Lbl, { C: C }, "Fund Name"),
+                React.createElement(Inp, { C: C, placeholder: "Axis Blue Chip Fund", value: form.name || "", onChange: e => setForm(f => ({ ...f, name: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Total Invested (\u20B9)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "33000", value: form.invested || "", onChange: e => setForm(f => ({ ...f, invested: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Current Value (\u20B9)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "36500", value: form.currentValue || "", onChange: e => setForm(f => ({ ...f, currentValue: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Monthly SIP Amount (\u20B9)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "3000", value: form.sipAmt || "", onChange: e => setForm(f => ({ ...f, sipAmt: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Months Running"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "11", value: form.months || "", onChange: e => setForm(f => ({ ...f, months: e.target.value })) })),
+            sheet.type === "FD" && React.createElement(React.Fragment, null,
+                React.createElement(Lbl, { C: C }, "FD Name"),
+                React.createElement(Inp, { C: C, placeholder: "SBI FD", value: form.name || "", onChange: e => setForm(f => ({ ...f, name: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Bank / Institution"),
+                React.createElement(Inp, { C: C, placeholder: "SBI", value: form.bank || "", onChange: e => setForm(f => ({ ...f, bank: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Principal Amount (\u20B9)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "100000", value: form.principal || "", onChange: e => setForm(f => ({ ...f, principal: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Interest Rate (%)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "7.1", step: "0.1", value: form.rate || "", onChange: e => setForm(f => ({ ...f, rate: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Maturity Date"),
+                React.createElement(Inp, { C: C, type: "date", value: form.maturity || "", onChange: e => setForm(f => ({ ...f, maturity: e.target.value })) })),
+            sheet.type === "Gold" && React.createElement(React.Fragment, null,
+                React.createElement(Lbl, { C: C }, "Name"),
+                React.createElement(Inp, { C: C, placeholder: "Physical Gold / SGB", value: form.name || "", onChange: e => setForm(f => ({ ...f, name: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Grams Held"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "25", value: form.grams || "", onChange: e => setForm(f => ({ ...f, grams: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Buy Rate (\u20B9 per gram)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "6200", value: form.buyRatePerGram || "", onChange: e => setForm(f => ({ ...f, buyRatePerGram: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Current Rate (\u20B9 per gram)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "7180", value: form.currentRatePerGram || "", onChange: e => setForm(f => ({ ...f, currentRatePerGram: e.target.value })) })),
+            sheet.type === "Govt" && React.createElement(React.Fragment, null,
+                React.createElement(Lbl, { C: C }, "Type"),
+                React.createElement("select", { style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", color: C.text, fontSize: 14, width: "100%", outline: "none" }, value: form.type || "PPF", onChange: e => setForm(f => ({ ...f, type: e.target.value })) }, ["PPF", "EPF", "NPS", "SSY", "VPF"].map(t => React.createElement("option", { key: t }, t))),
+                React.createElement(Lbl, { C: C }, "Current Balance (\u20B9)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "285000", value: form.balance || "", onChange: e => setForm(f => ({ ...f, balance: e.target.value })) }),
+                React.createElement(Lbl, { C: C }, "Yearly Contribution (\u20B9)"),
+                React.createElement(Inp, { C: C, type: "number", placeholder: "150000", value: form.yearlyContrib || "", onChange: e => setForm(f => ({ ...f, yearlyContrib: e.target.value })) })),
+            React.createElement(GoldBtn, { onClick: save }, "Save")))));
 }
 // ══════════════════════════════════════════════════════════════════════════════
 // DASHBOARD — reads live from portfolio state
 // ══════════════════════════════════════════════════════════════════════════════
 const SmoothSector = p => {
     const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = p;
-    return _jsxs("g", { children: [_jsx(Sector, { cx: cx, cy: cy, innerRadius: innerRadius - 3, outerRadius: outerRadius + 8, startAngle: startAngle, endAngle: endAngle, fill: fill, cornerRadius: 3 }), _jsx(Sector, { cx: cx, cy: cy, innerRadius: outerRadius + 11, outerRadius: outerRadius + 13, startAngle: startAngle, endAngle: endAngle, fill: fill, opacity: 0.35 })] });
+    return React.createElement("g", null,
+        React.createElement(recharts_1.Sector, { cx: cx, cy: cy, innerRadius: innerRadius - 3, outerRadius: outerRadius + 8, startAngle: startAngle, endAngle: endAngle, fill: fill, cornerRadius: 3 }),
+        React.createElement(recharts_1.Sector, { cx: cx, cy: cy, innerRadius: outerRadius + 11, outerRadius: outerRadius + 13, startAngle: startAngle, endAngle: endAngle, fill: fill, opacity: 0.35 }));
 };
 function Dashboard({ portfolio, expenses, profile, navigate, unread }) {
     const { C, isDark } = useTheme();
-    const [slice, setSlice] = useState(null);
+    const [slice, setSlice] = (0, react_1.useState)(null);
     const p = portfolio;
     const totalStocks = (p.stocks || []).reduce((s, i) => s + i.currentPrice, 0);
     const totalCrypto = (p.crypto || []).reduce((s, i) => s + i.currentPrice, 0);
@@ -333,31 +461,86 @@ function Dashboard({ portfolio, expenses, profile, navigate, unread }) {
         { icon: "🛡️", label: "Insurance", sc: "insurance" }, { icon: "👥", label: "Split", sc: "split" },
         { icon: "🧾", label: "Bills", sc: "bills" }, { icon: "📄", label: "Reports", sc: "reports" },
     ];
-    return (_jsxs("div", { style: { paddingBottom: 90 }, children: [_jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 16px 0" }, children: [_jsxs("div", { children: [_jsxs("p", { style: { color: C.muted, fontSize: 12, margin: "0 0 2px" }, children: ["\u0928\u092E\u0938\u094D\u0924\u0947, ", profile?.name || "there", " \uD83D\uDE4F"] }), _jsx("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: 0 }, children: "My Dashboard" })] }), _jsxs("button", { onClick: () => navigate("notifications"), style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 10px", cursor: "pointer", position: "relative" }, children: [_jsx("span", { style: { fontSize: 16, color: unread > 0 ? C.gold : C.muted }, children: "\uD83D\uDD14" }), unread > 0 && _jsx("div", { style: { position: "absolute", top: 6, right: 6, width: 7, height: 7, borderRadius: "50%", background: C.red } })] })] }), !hasPortfolio && (_jsxs("div", { style: { margin: "12px 14px 0", background: isDark ? "#0D1A2E" : "#EEF4FF", border: `1px solid ${C.gold}40`, borderRadius: 18, padding: "16px 16px 14px" }, children: [_jsx("p", { style: { color: C.gold, fontSize: 14, fontWeight: 800, margin: "0 0 4px" }, children: "\uD83D\uDC4B Set up your portfolio" }), _jsx("p", { style: { color: C.muted, fontSize: 12, margin: "0 0 12px", lineHeight: 1.6 }, children: "Add your investments once \u2014 your net worth, allocation and returns will all calculate automatically." }), _jsxs("div", { style: { display: "flex", gap: 8 }, children: [_jsx("button", { onClick: () => navigate("portfolio"), style: { flex: 1, background: C.gold, border: "none", borderRadius: 11, padding: "10px 0", cursor: "pointer", color: "#000", fontSize: 13, fontWeight: 800 }, children: "+ Add Investments" }), _jsx("button", { onClick: () => navigate("settings"), style: { flex: 1, background: C.card, border: `1px solid ${C.border}`, borderRadius: 11, padding: "10px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 }, children: "Set Income" })] })] })), _jsxs("div", { style: { margin: "12px 14px 0", background: isDark ? "linear-gradient(150deg,#162240,#0E1520)" : "linear-gradient(150deg,#E8F0FF,#FFF)", border: `1px solid ${C.border}`, borderRadius: 22, padding: "18px 18px 16px", position: "relative", overflow: "hidden" }, children: [_jsx("div", { style: { position: "absolute", right: -20, top: -20, width: 100, height: 100, background: C.gold + "0A", borderRadius: "50%", pointerEvents: "none" } }), _jsx("p", { style: { color: C.muted, fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", margin: "0 0 5px" }, children: "Total Net Worth" }), _jsx("div", { style: { display: "flex", alignItems: "baseline", gap: 8, marginBottom: 2 }, children: _jsx(AnimBal, { target: netWorth, size: 32, masked: !hasPortfolio }) }), _jsx("p", { style: { color: C.muted, fontSize: 11, margin: "0 0 14px" }, children: hasPortfolio ? fmtFull(netWorth) : "Add your investments to see this" }), _jsx("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }, children: [
-                            { l: "Income", v: hasProfile ? fmtINR(income) : "••••••", c: C.green, ok: hasProfile },
-                            { l: "Spent", v: hasExpenses ? fmtINR(totalExp) : "••••••", c: C.red, ok: hasExpenses },
-                            { l: "Saved", v: hasExpenses && hasProfile ? fmtINR(saved) : "••••••", c: C.gold, ok: hasExpenses && hasProfile },
-                        ].map(m => (_jsxs("div", { style: { background: "#FFFFFF09", borderRadius: 10, padding: "8px 10px" }, children: [_jsx("p", { style: { color: C.muted, fontSize: 9, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.07em" }, children: m.l }), _jsx("span", { style: { fontSize: 13, fontWeight: 800, fontFamily: "monospace", color: m.c, letterSpacing: m.ok ? "normal" : "0.05em" }, children: m.v })] }, m.l))) })] }), _jsx("div", { style: { margin: "10px 14px 0" }, children: _jsxs(Card, { children: [_jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }, children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: 0 }, children: "Asset Allocation" }), _jsx("button", { onClick: () => navigate("portfolio"), style: { background: "none", border: "none", color: C.gold, fontSize: 12, fontWeight: 700, cursor: "pointer" }, children: hasPortfolio ? "Edit →" : "+ Add" })] }), _jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [_jsxs("div", { style: { position: "relative", width: 130, height: 130, flexShrink: 0 }, children: [_jsx(ResponsiveContainer, { width: "100%", height: "100%", children: _jsx(PieChart, { children: _jsx(Pie, { data: alloc, cx: "50%", cy: "50%", innerRadius: 36, outerRadius: 54, paddingAngle: hasPortfolio ? 3 : 2, dataKey: "value", activeIndex: hasPortfolio && slice !== null ? slice : undefined, activeShape: hasPortfolio ? SmoothSector : undefined, onMouseEnter: hasPortfolio ? (_, i) => setSlice(i) : undefined, onMouseLeave: hasPortfolio ? () => setSlice(null) : undefined, onClick: hasPortfolio ? (_, i) => setSlice(slice === i ? null : i) : undefined, stroke: "none", children: alloc.map((d, i) => _jsx(Cell, { fill: d.color, opacity: hasPortfolio ? (slice === null || slice === i ? 1 : 0.3) : 0.35, style: { cursor: hasPortfolio ? "pointer" : "default" } }, i)) }) }) }), _jsx("div", { style: { position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }, children: hasPortfolio
-                                                ? (slice !== null
-                                                    ? _jsxs(_Fragment, { children: [_jsx("p", { style: { color: alloc[slice].color, fontSize: 11, fontWeight: 800, margin: 0, fontFamily: "monospace" }, children: fmtINR(alloc[slice].value) }), _jsx("p", { style: { color: C.muted, fontSize: 8, margin: "2px 0 0", textAlign: "center", maxWidth: 60 }, children: alloc[slice].name })] })
-                                                    : _jsxs(_Fragment, { children: [_jsx("p", { style: { color: C.text, fontSize: 11, fontWeight: 800, margin: 0, fontFamily: "monospace" }, children: fmtINR(netWorth) }), _jsx("p", { style: { color: C.muted, fontSize: 9, margin: "2px 0 0" }, children: "Total" })] }))
-                                                : _jsxs(_Fragment, { children: [_jsx("p", { style: { color: C.muted, fontSize: 18, margin: 0 }, children: "\uD83D\uDCC8" }), _jsx("p", { style: { color: C.muted, fontSize: 9, margin: "4px 0 0", textAlign: "center" }, children: "Add portfolio" })] }) })] }), _jsx("div", { style: { flex: 1, display: "flex", flexDirection: "column", gap: 7 }, children: alloc.map((d, i) => (_jsxs("div", { onClick: hasPortfolio ? () => setSlice(slice === i ? null : i) : undefined, style: { display: "flex", alignItems: "center", justifyContent: "space-between", cursor: hasPortfolio ? "pointer" : "default", opacity: hasPortfolio && slice !== null && slice !== i ? 0.4 : 1 }, children: [_jsxs("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [_jsx("div", { style: { width: 7, height: 7, borderRadius: "50%", background: d.color, opacity: hasPortfolio ? 1 : 0.4 } }), _jsx("span", { style: { color: C.muted, fontSize: 10 }, children: d.name })] }), _jsx("span", { style: { color: hasPortfolio ? (slice === i ? d.color : C.text) : C.border, fontSize: 10, fontWeight: 700, fontFamily: "monospace", letterSpacing: hasPortfolio ? "normal" : "0.05em" }, children: hasPortfolio ? ((d.value / netWorth) * 100).toFixed(0) + "%" : "••%" })] }, d.name))) })] })] }) }), _jsx("div", { style: { margin: "10px 14px 0", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }, children: [
-                    { l: "Stocks", v: totalStocks, c: C.blue, ok: totalStocks > 0 },
-                    { l: "Crypto", v: totalCrypto, c: C.purple, ok: totalCrypto > 0 },
-                    { l: "Mutual F", v: totalMF, c: C.teal, ok: totalMF > 0 },
-                    { l: "FD/RD", v: totalFD, c: C.green, ok: totalFD > 0 },
-                    { l: "Gold", v: totalGold, c: C.gold, ok: totalGold > 0 },
-                    { l: "PPF/NPS", v: totalGovt, c: "#EC4899", ok: totalGovt > 0 },
-                ].map(m => (_jsxs("div", { onClick: () => navigate("portfolio"), style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "11px 12px", cursor: "pointer" }, children: [_jsx("p", { style: { color: C.muted, fontSize: 9, fontWeight: 700, textTransform: "uppercase", margin: "0 0 5px", letterSpacing: "0.07em" }, children: m.l }), _jsx("p", { style: { color: m.ok ? m.c : C.border, fontSize: 13, fontWeight: 800, margin: 0, fontFamily: "monospace", letterSpacing: m.ok ? "normal" : "0.05em" }, children: m.ok ? fmtINR(m.v) : "•••" })] }, m.l))) }), _jsxs("div", { style: { margin: "10px 14px 0" }, children: [_jsx(SectionTitle, { children: "Quick Access" }), _jsx("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }, children: quick.map(a => (_jsxs("button", { onClick: () => navigate(a.sc), style: { background: a.sc === "portfolio" && !hasPortfolio ? C.gold + "18" : C.card, border: `1px solid ${a.sc === "portfolio" && !hasPortfolio ? C.gold : C.border}`, borderRadius: 16, padding: "12px 5px 10px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }, children: [_jsx("span", { style: { fontSize: 20 }, children: a.icon }), _jsx("span", { style: { color: a.sc === "portfolio" && !hasPortfolio ? C.gold : C.muted, fontSize: 10, fontWeight: 600, textAlign: "center" }, children: a.label })] }, a.label))) })] })] }));
+    return (React.createElement("div", { style: { paddingBottom: 90 } },
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 16px 0" } },
+            React.createElement("div", null,
+                React.createElement("p", { style: { color: C.muted, fontSize: 12, margin: "0 0 2px" } },
+                    "\u0928\u092E\u0938\u094D\u0924\u0947, ",
+                    profile?.name || "there",
+                    " \uD83D\uDE4F"),
+                React.createElement("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: 0 } }, "My Dashboard")),
+            React.createElement("button", { onClick: () => navigate("notifications"), style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 10px", cursor: "pointer", position: "relative" } },
+                React.createElement("span", { style: { fontSize: 16, color: unread > 0 ? C.gold : C.muted } }, "\uD83D\uDD14"),
+                unread > 0 && React.createElement("div", { style: { position: "absolute", top: 6, right: 6, width: 7, height: 7, borderRadius: "50%", background: C.red } }))),
+        !hasPortfolio && (React.createElement("div", { style: { margin: "12px 14px 0", background: isDark ? "#0D1A2E" : "#EEF4FF", border: `1px solid ${C.gold}40`, borderRadius: 18, padding: "16px 16px 14px" } },
+            React.createElement("p", { style: { color: C.gold, fontSize: 14, fontWeight: 800, margin: "0 0 4px" } }, "\uD83D\uDC4B Set up your portfolio"),
+            React.createElement("p", { style: { color: C.muted, fontSize: 12, margin: "0 0 12px", lineHeight: 1.6 } }, "Add your investments once \u2014 your net worth, allocation and returns will all calculate automatically."),
+            React.createElement("div", { style: { display: "flex", gap: 8 } },
+                React.createElement("button", { onClick: () => navigate("portfolio"), style: { flex: 1, background: C.gold, border: "none", borderRadius: 11, padding: "10px 0", cursor: "pointer", color: "#000", fontSize: 13, fontWeight: 800 } }, "+ Add Investments"),
+                React.createElement("button", { onClick: () => navigate("settings"), style: { flex: 1, background: C.card, border: `1px solid ${C.border}`, borderRadius: 11, padding: "10px 0", cursor: "pointer", color: C.muted, fontSize: 13, fontWeight: 700 } }, "Set Income")))),
+        React.createElement("div", { style: { margin: "12px 14px 0", background: isDark ? "linear-gradient(150deg,#162240,#0E1520)" : "linear-gradient(150deg,#E8F0FF,#FFF)", border: `1px solid ${C.border}`, borderRadius: 22, padding: "18px 18px 16px", position: "relative", overflow: "hidden" } },
+            React.createElement("div", { style: { position: "absolute", right: -20, top: -20, width: 100, height: 100, background: C.gold + "0A", borderRadius: "50%", pointerEvents: "none" } }),
+            React.createElement("p", { style: { color: C.muted, fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", margin: "0 0 5px" } }, "Total Net Worth"),
+            React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 8, marginBottom: 2 } },
+                React.createElement(AnimBal, { target: netWorth, size: 32, masked: !hasPortfolio })),
+            React.createElement("p", { style: { color: C.muted, fontSize: 11, margin: "0 0 14px" } }, hasPortfolio ? fmtFull(netWorth) : "Add your investments to see this"),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 } }, [
+                { l: "Income", v: hasProfile ? fmtINR(income) : "••••••", c: C.green, ok: hasProfile },
+                { l: "Spent", v: hasExpenses ? fmtINR(totalExp) : "••••••", c: C.red, ok: hasExpenses },
+                { l: "Saved", v: hasExpenses && hasProfile ? fmtINR(saved) : "••••••", c: C.gold, ok: hasExpenses && hasProfile },
+            ].map(m => (React.createElement("div", { key: m.l, style: { background: "#FFFFFF09", borderRadius: 10, padding: "8px 10px" } },
+                React.createElement("p", { style: { color: C.muted, fontSize: 9, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.07em" } }, m.l),
+                React.createElement("span", { style: { fontSize: 13, fontWeight: 800, fontFamily: "monospace", color: m.c, letterSpacing: m.ok ? "normal" : "0.05em" } }, m.v)))))),
+        React.createElement("div", { style: { margin: "10px 14px 0" } },
+            React.createElement(Card, null,
+                React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 } },
+                    React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: 0 } }, "Asset Allocation"),
+                    React.createElement("button", { onClick: () => navigate("portfolio"), style: { background: "none", border: "none", color: C.gold, fontSize: 12, fontWeight: 700, cursor: "pointer" } }, hasPortfolio ? "Edit →" : "+ Add")),
+                React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
+                    React.createElement("div", { style: { position: "relative", width: 130, height: 130, flexShrink: 0 } },
+                        React.createElement(recharts_1.ResponsiveContainer, { width: "100%", height: "100%" },
+                            React.createElement(recharts_1.PieChart, null,
+                                React.createElement(recharts_1.Pie, { data: alloc, cx: "50%", cy: "50%", innerRadius: 36, outerRadius: 54, paddingAngle: hasPortfolio ? 3 : 2, dataKey: "value", activeIndex: hasPortfolio && slice !== null ? slice : undefined, activeShape: hasPortfolio ? SmoothSector : undefined, onMouseEnter: hasPortfolio ? (_, i) => setSlice(i) : undefined, onMouseLeave: hasPortfolio ? () => setSlice(null) : undefined, onClick: hasPortfolio ? (_, i) => setSlice(slice === i ? null : i) : undefined, stroke: "none" }, alloc.map((d, i) => React.createElement(recharts_1.Cell, { key: i, fill: d.color, opacity: hasPortfolio ? (slice === null || slice === i ? 1 : 0.3) : 0.35, style: { cursor: hasPortfolio ? "pointer" : "default" } }))))),
+                        React.createElement("div", { style: { position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" } }, hasPortfolio
+                            ? (slice !== null
+                                ? React.createElement(React.Fragment, null,
+                                    React.createElement("p", { style: { color: alloc[slice].color, fontSize: 11, fontWeight: 800, margin: 0, fontFamily: "monospace" } }, fmtINR(alloc[slice].value)),
+                                    React.createElement("p", { style: { color: C.muted, fontSize: 8, margin: "2px 0 0", textAlign: "center", maxWidth: 60 } }, alloc[slice].name))
+                                : React.createElement(React.Fragment, null,
+                                    React.createElement("p", { style: { color: C.text, fontSize: 11, fontWeight: 800, margin: 0, fontFamily: "monospace" } }, fmtINR(netWorth)),
+                                    React.createElement("p", { style: { color: C.muted, fontSize: 9, margin: "2px 0 0" } }, "Total")))
+                            : React.createElement(React.Fragment, null,
+                                React.createElement("p", { style: { color: C.muted, fontSize: 18, margin: 0 } }, "\uD83D\uDCC8"),
+                                React.createElement("p", { style: { color: C.muted, fontSize: 9, margin: "4px 0 0", textAlign: "center" } }, "Add portfolio")))),
+                    React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", gap: 7 } }, alloc.map((d, i) => (React.createElement("div", { key: d.name, onClick: hasPortfolio ? () => setSlice(slice === i ? null : i) : undefined, style: { display: "flex", alignItems: "center", justifyContent: "space-between", cursor: hasPortfolio ? "pointer" : "default", opacity: hasPortfolio && slice !== null && slice !== i ? 0.4 : 1 } },
+                        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+                            React.createElement("div", { style: { width: 7, height: 7, borderRadius: "50%", background: d.color, opacity: hasPortfolio ? 1 : 0.4 } }),
+                            React.createElement("span", { style: { color: C.muted, fontSize: 10 } }, d.name)),
+                        React.createElement("span", { style: { color: hasPortfolio ? (slice === i ? d.color : C.text) : C.border, fontSize: 10, fontWeight: 700, fontFamily: "monospace", letterSpacing: hasPortfolio ? "normal" : "0.05em" } }, hasPortfolio ? ((d.value / netWorth) * 100).toFixed(0) + "%" : "••%")))))))),
+        React.createElement("div", { style: { margin: "10px 14px 0", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 } }, [
+            { l: "Stocks", v: totalStocks, c: C.blue, ok: totalStocks > 0 },
+            { l: "Crypto", v: totalCrypto, c: C.purple, ok: totalCrypto > 0 },
+            { l: "Mutual F", v: totalMF, c: C.teal, ok: totalMF > 0 },
+            { l: "FD/RD", v: totalFD, c: C.green, ok: totalFD > 0 },
+            { l: "Gold", v: totalGold, c: C.gold, ok: totalGold > 0 },
+            { l: "PPF/NPS", v: totalGovt, c: "#EC4899", ok: totalGovt > 0 },
+        ].map(m => (React.createElement("div", { key: m.l, onClick: () => navigate("portfolio"), style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "11px 12px", cursor: "pointer" } },
+            React.createElement("p", { style: { color: C.muted, fontSize: 9, fontWeight: 700, textTransform: "uppercase", margin: "0 0 5px", letterSpacing: "0.07em" } }, m.l),
+            React.createElement("p", { style: { color: m.ok ? m.c : C.border, fontSize: 13, fontWeight: 800, margin: 0, fontFamily: "monospace", letterSpacing: m.ok ? "normal" : "0.05em" } }, m.ok ? fmtINR(m.v) : "•••"))))),
+        React.createElement("div", { style: { margin: "10px 14px 0" } },
+            React.createElement(SectionTitle, null, "Quick Access"),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 } }, quick.map(a => (React.createElement("button", { key: a.label, onClick: () => navigate(a.sc), style: { background: a.sc === "portfolio" && !hasPortfolio ? C.gold + "18" : C.card, border: `1px solid ${a.sc === "portfolio" && !hasPortfolio ? C.gold : C.border}`, borderRadius: 16, padding: "12px 5px 10px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5 } },
+                React.createElement("span", { style: { fontSize: 20 } }, a.icon),
+                React.createElement("span", { style: { color: a.sc === "portfolio" && !hasPortfolio ? C.gold : C.muted, fontSize: 10, fontWeight: 600, textAlign: "center" } }, a.label))))))));
 }
 // ══════════════════════════════════════════════════════════════════════════════
 // GOALS
 // ══════════════════════════════════════════════════════════════════════════════
 function GoalsScreen({ goals, setGoals }) {
     const { C } = useTheme();
-    const [adding, setAdding] = useState(false);
-    const [confetti, setConfetti] = useState(false);
-    const [form, setForm] = useState({ emoji: "🎯", name: "", target: "", saved: "", deadline: "", monthly: "", color: "#3B82F6" });
+    const [adding, setAdding] = (0, react_1.useState)(false);
+    const [confetti, setConfetti] = (0, react_1.useState)(false);
+    const [form, setForm] = (0, react_1.useState)({ emoji: "🎯", name: "", target: "", saved: "", deadline: "", monthly: "", color: "#3B82F6" });
     const addSavings = (id, amt) => setGoals(gs => (gs || []).map(g => {
         if (g.id !== id)
             return g;
@@ -368,50 +551,176 @@ function GoalsScreen({ goals, setGoals }) {
         }
         return { ...g, saved: ns };
     }));
-    return (_jsxs("div", { style: { padding: "0 14px 90px" }, children: [_jsx(Confetti, { active: confetti }), _jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 14px" }, children: [_jsx("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: 0 }, children: "Goals" }), _jsx("button", { onClick: () => setAdding(true), style: { background: C.gold, border: "none", borderRadius: 12, padding: "7px 13px", cursor: "pointer", color: "#000", fontSize: 13, fontWeight: 700 }, children: "+  New" })] }), (goals || []).length > 0 && (_jsxs("div", { style: { display: "flex", gap: 8, marginBottom: 14 }, children: [_jsx(MiniStat, { label: "Total Target", value: fmtINR((goals || []).reduce((s, g) => s + g.target, 0)) }), _jsx(MiniStat, { label: "Total Saved", value: fmtINR((goals || []).reduce((s, g) => s + g.saved, 0)), color: C.green })] })), (goals || []).length === 0 && (_jsxs("div", { style: { textAlign: "center", padding: "48px 24px" }, children: [_jsx("span", { style: { fontSize: 48, display: "block", marginBottom: 14 }, children: "\uD83C\uDFAF" }), _jsx("p", { style: { color: C.text, fontSize: 16, fontWeight: 700, margin: "0 0 8px" }, children: "No goals yet" }), _jsx("p", { style: { color: C.muted, fontSize: 13, margin: "0 0 20px", lineHeight: 1.6 }, children: "Add a goal \u2014 a house, a trip, a car \u2014 and the app will track your progress and tell you if you're on track." }), _jsx("button", { onClick: () => setAdding(true), style: { background: C.gold, border: "none", borderRadius: 12, padding: "11px 24px", cursor: "pointer", color: "#000", fontSize: 14, fontWeight: 800 }, children: "+ Add Your First Goal" })] })), (goals || []).map(g => {
-                const pct = Math.min((g.saved / g.target) * 100, 100), dl = daysLeft(g.deadline);
-                const mNeed = g.target > g.saved ? Math.ceil((g.target - g.saved) / (Math.max(dl, 1) / 30)) : 0;
-                const onTrack = g.monthly >= mNeed * 0.9 || pct === 100;
-                return (_jsxs("div", { style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 16, marginBottom: 12, position: "relative", overflow: "hidden" }, children: [_jsx("div", { style: { position: "absolute", top: 0, left: 0, right: 0, height: 3, background: C.border }, children: _jsx("div", { style: { width: pct + "%", height: "100%", background: g.color, transition: "width .6s" } }) }), _jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 4 }, children: [_jsxs("div", { style: { display: "flex", alignItems: "center", gap: 10 }, children: [_jsx("div", { style: { width: 42, height: 42, borderRadius: 13, background: g.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }, children: g.emoji }), _jsxs("div", { children: [_jsx("p", { style: { color: C.text, fontSize: 14, fontWeight: 800, margin: "0 0 4px" }, children: g.name }), _jsxs("div", { style: { display: "flex", gap: 5 }, children: [_jsx(Pill, { text: pct === 100 ? "Done 🎉" : pct.toFixed(0) + "%", color: g.color }), _jsx(Pill, { text: onTrack ? "On track" : "Needs boost", color: onTrack ? C.green : C.gold })] })] })] }), _jsx("button", { onClick: () => setGoals(gs => (gs || []).filter(x => x.id !== g.id)), style: { background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16 }, children: "\uD83D\uDDD1" })] }), _jsx("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7, marginTop: 12 }, children: [["Saved", fmtINR(g.saved), null], ["Target", fmtINR(g.target), null], ["Due", dl + "d", dl < 90 ? C.red : null]].map(([l, v, c]) => (_jsxs("div", { style: { background: C.card2, borderRadius: 10, padding: "8px 10px" }, children: [_jsx("p", { style: { color: C.muted, fontSize: 9, fontWeight: 700, textTransform: "uppercase", margin: "0 0 2px" }, children: l }), _jsx("p", { style: { color: c || C.text, fontSize: 12, fontWeight: 700, margin: 0 }, children: v })] }, l))) }), _jsx("div", { style: { height: 5, background: C.border, borderRadius: 3, overflow: "hidden", marginTop: 10 }, children: _jsx("div", { style: { width: pct + "%", height: "100%", background: g.color, transition: "width .6s" } }) }), _jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }, children: [_jsxs("p", { style: { color: C.muted, fontSize: 10, margin: 0 }, children: [pct.toFixed(1), "% \u00B7 Need ~", fmtINR(mNeed), "/mo"] }), pct < 100 && _jsxs("button", { onClick: () => addSavings(g.id, g.monthly), style: { background: C.gold + "20", border: `1px solid ${C.gold}40`, borderRadius: 8, padding: "5px 11px", cursor: "pointer", color: C.gold, fontSize: 11, fontWeight: 700 }, children: ["+ Add ", fmtINR(g.monthly)] })] })] }, g.id));
-            }), adding && (_jsxs(Sheet, { title: "New Goal", onClose: () => setAdding(false), children: [_jsx("div", { style: { display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 8 }, children: ["🏠", "🎓", "✈️", "🚗", "💍", "👶", "🏖️", "🎯"].map(e => _jsx("button", { onClick: () => setForm(g => ({ ...g, emoji: e })), style: { background: form.emoji === e ? C.gold + "22" : C.card2, border: `1px solid ${form.emoji === e ? C.gold : C.border}`, borderRadius: 10, padding: "7px 9px", cursor: "pointer", fontSize: 17 }, children: e }, e)) }), _jsx(Lbl, { C: C, children: "Goal Name" }), _jsx(Inp, { C: C, placeholder: "Dream Home", value: form.name, onChange: e => setForm(g => ({ ...g, name: e.target.value })) }), _jsx(Lbl, { C: C, children: "Target (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "5000000", value: form.target, onChange: e => setForm(g => ({ ...g, target: e.target.value })) }), _jsx(Lbl, { C: C, children: "Already Saved (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "0", value: form.saved, onChange: e => setForm(g => ({ ...g, saved: e.target.value })) }), _jsx(Lbl, { C: C, children: "Monthly Contribution (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "15000", value: form.monthly, onChange: e => setForm(g => ({ ...g, monthly: e.target.value })) }), _jsx(Lbl, { C: C, children: "Target Date" }), _jsx(Inp, { C: C, type: "date", value: form.deadline, onChange: e => setForm(g => ({ ...g, deadline: e.target.value })) }), _jsx(GoldBtn, { onClick: () => {
-                            if (!form.name || !form.target)
-                                return;
-                            setGoals(g => [...(g || []), { ...form, id: uid(), target: parseFloat(form.target), saved: parseFloat(form.saved || 0), monthly: parseFloat(form.monthly || 0) }]);
-                            setAdding(false);
-                            setForm({ emoji: "🎯", name: "", target: "", saved: "", deadline: "", monthly: "", color: "#3B82F6" });
-                        }, children: "Add Goal" })] }))] }));
+    return (React.createElement("div", { style: { padding: "0 14px 90px" } },
+        React.createElement(Confetti, { active: confetti }),
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 14px" } },
+            React.createElement("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: 0 } }, "Goals"),
+            React.createElement("button", { onClick: () => setAdding(true), style: { background: C.gold, border: "none", borderRadius: 12, padding: "7px 13px", cursor: "pointer", color: "#000", fontSize: 13, fontWeight: 700 } }, "+  New")),
+        (goals || []).length > 0 && (React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14 } },
+            React.createElement(MiniStat, { label: "Total Target", value: fmtINR((goals || []).reduce((s, g) => s + g.target, 0)) }),
+            React.createElement(MiniStat, { label: "Total Saved", value: fmtINR((goals || []).reduce((s, g) => s + g.saved, 0)), color: C.green }))),
+        (goals || []).length === 0 && (React.createElement("div", { style: { textAlign: "center", padding: "48px 24px" } },
+            React.createElement("span", { style: { fontSize: 48, display: "block", marginBottom: 14 } }, "\uD83C\uDFAF"),
+            React.createElement("p", { style: { color: C.text, fontSize: 16, fontWeight: 700, margin: "0 0 8px" } }, "No goals yet"),
+            React.createElement("p", { style: { color: C.muted, fontSize: 13, margin: "0 0 20px", lineHeight: 1.6 } }, "Add a goal \u2014 a house, a trip, a car \u2014 and the app will track your progress and tell you if you're on track."),
+            React.createElement("button", { onClick: () => setAdding(true), style: { background: C.gold, border: "none", borderRadius: 12, padding: "11px 24px", cursor: "pointer", color: "#000", fontSize: 14, fontWeight: 800 } }, "+ Add Your First Goal"))),
+        (goals || []).map(g => {
+            const pct = Math.min((g.saved / g.target) * 100, 100), dl = daysLeft(g.deadline);
+            const mNeed = g.target > g.saved ? Math.ceil((g.target - g.saved) / (Math.max(dl, 1) / 30)) : 0;
+            const onTrack = g.monthly >= mNeed * 0.9 || pct === 100;
+            return (React.createElement("div", { key: g.id, style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 16, marginBottom: 12, position: "relative", overflow: "hidden" } },
+                React.createElement("div", { style: { position: "absolute", top: 0, left: 0, right: 0, height: 3, background: C.border } },
+                    React.createElement("div", { style: { width: pct + "%", height: "100%", background: g.color, transition: "width .6s" } })),
+                React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 4 } },
+                    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10 } },
+                        React.createElement("div", { style: { width: 42, height: 42, borderRadius: 13, background: g.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 } }, g.emoji),
+                        React.createElement("div", null,
+                            React.createElement("p", { style: { color: C.text, fontSize: 14, fontWeight: 800, margin: "0 0 4px" } }, g.name),
+                            React.createElement("div", { style: { display: "flex", gap: 5 } },
+                                React.createElement(Pill, { text: pct === 100 ? "Done 🎉" : pct.toFixed(0) + "%", color: g.color }),
+                                React.createElement(Pill, { text: onTrack ? "On track" : "Needs boost", color: onTrack ? C.green : C.gold })))),
+                    React.createElement("button", { onClick: () => setGoals(gs => (gs || []).filter(x => x.id !== g.id)), style: { background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16 } }, "\uD83D\uDDD1")),
+                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7, marginTop: 12 } }, [["Saved", fmtINR(g.saved), null], ["Target", fmtINR(g.target), null], ["Due", dl + "d", dl < 90 ? C.red : null]].map(([l, v, c]) => (React.createElement("div", { key: l, style: { background: C.card2, borderRadius: 10, padding: "8px 10px" } },
+                    React.createElement("p", { style: { color: C.muted, fontSize: 9, fontWeight: 700, textTransform: "uppercase", margin: "0 0 2px" } }, l),
+                    React.createElement("p", { style: { color: c || C.text, fontSize: 12, fontWeight: 700, margin: 0 } }, v))))),
+                React.createElement("div", { style: { height: 5, background: C.border, borderRadius: 3, overflow: "hidden", marginTop: 10 } },
+                    React.createElement("div", { style: { width: pct + "%", height: "100%", background: g.color, transition: "width .6s" } })),
+                React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 } },
+                    React.createElement("p", { style: { color: C.muted, fontSize: 10, margin: 0 } },
+                        pct.toFixed(1),
+                        "% \u00B7 Need ~",
+                        fmtINR(mNeed),
+                        "/mo"),
+                    pct < 100 && React.createElement("button", { onClick: () => addSavings(g.id, g.monthly), style: { background: C.gold + "20", border: `1px solid ${C.gold}40`, borderRadius: 8, padding: "5px 11px", cursor: "pointer", color: C.gold, fontSize: 11, fontWeight: 700 } },
+                        "+ Add ",
+                        fmtINR(g.monthly)))));
+        }),
+        adding && (React.createElement(Sheet, { title: "New Goal", onClose: () => setAdding(false) },
+            React.createElement("div", { style: { display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 8 } }, ["🏠", "🎓", "✈️", "🚗", "💍", "👶", "🏖️", "🎯"].map(e => React.createElement("button", { key: e, onClick: () => setForm(g => ({ ...g, emoji: e })), style: { background: form.emoji === e ? C.gold + "22" : C.card2, border: `1px solid ${form.emoji === e ? C.gold : C.border}`, borderRadius: 10, padding: "7px 9px", cursor: "pointer", fontSize: 17 } }, e))),
+            React.createElement(Lbl, { C: C }, "Goal Name"),
+            React.createElement(Inp, { C: C, placeholder: "Dream Home", value: form.name, onChange: e => setForm(g => ({ ...g, name: e.target.value })) }),
+            React.createElement(Lbl, { C: C }, "Target (\u20B9)"),
+            React.createElement(Inp, { C: C, type: "number", placeholder: "5000000", value: form.target, onChange: e => setForm(g => ({ ...g, target: e.target.value })) }),
+            React.createElement(Lbl, { C: C }, "Already Saved (\u20B9)"),
+            React.createElement(Inp, { C: C, type: "number", placeholder: "0", value: form.saved, onChange: e => setForm(g => ({ ...g, saved: e.target.value })) }),
+            React.createElement(Lbl, { C: C }, "Monthly Contribution (\u20B9)"),
+            React.createElement(Inp, { C: C, type: "number", placeholder: "15000", value: form.monthly, onChange: e => setForm(g => ({ ...g, monthly: e.target.value })) }),
+            React.createElement(Lbl, { C: C }, "Target Date"),
+            React.createElement(Inp, { C: C, type: "date", value: form.deadline, onChange: e => setForm(g => ({ ...g, deadline: e.target.value })) }),
+            React.createElement(GoldBtn, { onClick: () => {
+                    if (!form.name || !form.target)
+                        return;
+                    setGoals(g => [...(g || []), { ...form, id: uid(), target: parseFloat(form.target), saved: parseFloat(form.saved || 0), monthly: parseFloat(form.monthly || 0) }]);
+                    setAdding(false);
+                    setForm({ emoji: "🎯", name: "", target: "", saved: "", deadline: "", monthly: "", color: "#3B82F6" });
+                } }, "Add Goal")))));
 }
 // ══════════════════════════════════════════════════════════════════════════════
 // SPENDS
 // ══════════════════════════════════════════════════════════════════════════════
 function SpendScreen({ expenses, setExpenses, profile }) {
     const { C } = useTheme();
-    const [tab, setTab] = useState("Overview");
-    const [adding, setAdding] = useState(false);
-    const [editing, setEditing] = useState(null);
-    const [form, setForm] = useState({ name: "", cat: "Food", amt: "", date: new Date().toISOString().slice(0, 10) });
+    const [tab, setTab] = (0, react_1.useState)("Overview");
+    const [adding, setAdding] = (0, react_1.useState)(false);
+    const [editing, setEditing] = (0, react_1.useState)(null);
+    const [form, setForm] = (0, react_1.useState)({ name: "", cat: "Food", amt: "", date: new Date().toISOString().slice(0, 10) });
     const budget = profile?.budget || 60000;
     const income = profile?.income || 85000;
     const totalSpent = (expenses || []).reduce((s, e) => s + e.amt, 0);
     const bl = budget - totalSpent;
     const bp = Math.min(totalSpent / budget * 100, 100);
-    return (_jsxs("div", { style: { padding: "0 14px 90px" }, children: [_jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 14px" }, children: [_jsx("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: 0 }, children: "Spends" }), _jsx("button", { onClick: () => setAdding(true), style: { background: C.gold, border: "none", borderRadius: 12, padding: "7px 13px", cursor: "pointer", color: "#000", fontSize: 13, fontWeight: 700 }, children: "+  Add" })] }), _jsxs(Card, { style: { marginBottom: 14 }, children: [_jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10 }, children: [_jsxs("div", { children: [_jsx("p", { style: { color: C.muted, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 3px" }, children: "This Month" }), _jsx(Bal, { value: fmtFull(totalSpent), size: 24 }), _jsxs("p", { style: { color: C.muted, fontSize: 11, margin: "2px 0 0" }, children: ["of ", fmtFull(budget), " budget"] })] }), _jsxs("p", { style: { color: bl >= 0 ? C.green : C.red, fontSize: 14, fontWeight: 800, margin: 0, fontFamily: "monospace" }, children: [bl >= 0 ? "+" : "", fmtFull(bl)] })] }), _jsx("div", { style: { height: 7, background: C.border, borderRadius: 3, overflow: "hidden" }, children: _jsx("div", { style: { width: bp + "%", height: "100%", background: bp > 90 ? C.red : bp > 70 ? C.gold : C.green, borderRadius: 3, transition: "width .5s" } }) }), _jsxs("p", { style: { color: C.muted, fontSize: 10, margin: "5px 0 0" }, children: [bp.toFixed(0), "% of budget \u00B7 Savings rate: ", ((income - totalSpent) / income * 100).toFixed(0), "%"] })] }), _jsx(Tabs, { tabs: ["Overview", "Transactions"], active: tab, onChange: setTab }), tab === "Overview" && ECATS.map(cat => {
-                const spent = (expenses || []).filter(e => e.cat === cat.name).reduce((s, e) => s + e.amt, 0);
-                if (!spent)
-                    return null;
-                const bud = (cat.budget / 100) * budget;
-                const over = spent > bud;
-                return (_jsxs("div", { style: { background: C.card, border: `1px solid ${over ? C.red + "50" : C.border}`, borderRadius: 14, padding: "13px 15px", marginBottom: 9 }, children: [_jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }, children: [_jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [_jsx("span", { style: { fontSize: 17 }, children: cat.icon }), _jsxs("div", { children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: "0 0 1px" }, children: cat.name }), _jsxs("p", { style: { color: C.muted, fontSize: 10, margin: 0 }, children: ["Budget ", fmtFull(bud)] })] })] }), _jsxs("div", { style: { textAlign: "right" }, children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: 800, margin: "0 0 2px" }, children: fmtFull(spent) }), over && _jsx(Pill, { text: "Over!", color: C.red })] })] }), _jsx("div", { style: { height: 4, background: C.border, borderRadius: 2 }, children: _jsx("div", { style: { width: Math.min(spent / bud * 100, 100) + "%", height: "100%", background: over ? C.red : cat.color, borderRadius: 2 } }) })] }, cat.name));
-            }), tab === "Transactions" && [...(expenses || [])].sort((a, b) => new Date(b.date) - new Date(a.date)).map(exp => {
-                const cat = ECATS.find(c => c.name === exp.cat);
-                return (_jsxs("div", { style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 13, padding: "11px 14px", marginBottom: 7, display: "flex", alignItems: "center", justifyContent: "space-between" }, children: [_jsxs("div", { style: { display: "flex", alignItems: "center", gap: 9 }, children: [_jsx("span", { style: { fontSize: 18 }, children: cat?.icon || "💸" }), _jsxs("div", { children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: 600, margin: "0 0 2px" }, children: exp.name }), _jsxs("div", { style: { display: "flex", gap: 5 }, children: [_jsx(Pill, { text: exp.cat, color: cat?.color || C.muted }), _jsx("span", { style: { color: C.muted, fontSize: 10, alignSelf: "center" }, children: exp.date })] })] })] }), _jsxs("div", { style: { display: "flex", alignItems: "center", gap: 7 }, children: [_jsxs("p", { style: { color: C.red, fontSize: 13, fontWeight: 800, margin: 0, fontFamily: "monospace" }, children: ["-", fmtFull(exp.amt)] }), _jsx("button", { onClick: () => setEditing({ ...exp }), style: { background: C.card2, border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: C.muted, fontSize: 12 }, children: "\u270F\uFE0F" }), _jsx("button", { onClick: () => setExpenses(ex => (ex || []).filter(e => e.id !== exp.id)), style: { background: C.red + "18", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: C.red, fontSize: 12 }, children: "\uD83D\uDDD1" })] })] }, exp.id));
-            }), editing && (_jsxs(Sheet, { title: "Edit Expense", onClose: () => setEditing(null), children: [_jsx(Lbl, { C: C, children: "Name" }), _jsx(Inp, { C: C, value: editing.name, onChange: e => setEditing(d => ({ ...d, name: e.target.value })) }), _jsx(Lbl, { C: C, children: "Category" }), _jsx("select", { style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", color: C.text, fontSize: 14, width: "100%", outline: "none" }, value: editing.cat, onChange: e => setEditing(d => ({ ...d, cat: e.target.value })), children: ECATS.map(c => _jsxs("option", { value: c.name, children: [c.icon, " ", c.name] }, c.name)) }), _jsx(Lbl, { C: C, children: "Amount (\u20B9)" }), _jsx(Inp, { C: C, type: "number", value: editing.amt, onChange: e => setEditing(d => ({ ...d, amt: parseFloat(e.target.value) })) }), _jsx(GoldBtn, { onClick: () => { setExpenses(ex => (ex || []).map(e => e.id === editing.id ? { ...e, ...editing } : e)); setEditing(null); }, children: "Save" })] })), adding && (_jsxs(Sheet, { title: "Add Expense", onClose: () => setAdding(false), children: [_jsx(Lbl, { C: C, children: "Name" }), _jsx(Inp, { C: C, placeholder: "Zomato, Petrol\u2026", value: form.name, onChange: e => setForm(f => ({ ...f, name: e.target.value })) }), _jsx(Lbl, { C: C, children: "Category" }), _jsx("select", { style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", color: C.text, fontSize: 14, width: "100%", outline: "none" }, value: form.cat, onChange: e => setForm(f => ({ ...f, cat: e.target.value })), children: ECATS.map(c => _jsxs("option", { value: c.name, children: [c.icon, " ", c.name] }, c.name)) }), _jsx(Lbl, { C: C, children: "Amount (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "500", value: form.amt, onChange: e => setForm(f => ({ ...f, amt: e.target.value })) }), _jsx(Lbl, { C: C, children: "Date" }), _jsx(Inp, { C: C, type: "date", value: form.date, onChange: e => setForm(f => ({ ...f, date: e.target.value })) }), _jsx(GoldBtn, { onClick: () => {
-                            if (!form.name || !form.amt)
-                                return;
-                            setExpenses(ex => [...(ex || []), { ...form, id: uid(), amt: parseFloat(form.amt) }]);
-                            setAdding(false);
-                            setForm({ name: "", cat: "Food", amt: "", date: new Date().toISOString().slice(0, 10) });
-                        }, children: "Add Expense" })] }))] }));
+    return (React.createElement("div", { style: { padding: "0 14px 90px" } },
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 14px" } },
+            React.createElement("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: 0 } }, "Spends"),
+            React.createElement("button", { onClick: () => setAdding(true), style: { background: C.gold, border: "none", borderRadius: 12, padding: "7px 13px", cursor: "pointer", color: "#000", fontSize: 13, fontWeight: 700 } }, "+  Add")),
+        React.createElement(Card, { style: { marginBottom: 14 } },
+            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10 } },
+                React.createElement("div", null,
+                    React.createElement("p", { style: { color: C.muted, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 3px" } }, "This Month"),
+                    React.createElement(Bal, { value: fmtFull(totalSpent), size: 24 }),
+                    React.createElement("p", { style: { color: C.muted, fontSize: 11, margin: "2px 0 0" } },
+                        "of ",
+                        fmtFull(budget),
+                        " budget")),
+                React.createElement("p", { style: { color: bl >= 0 ? C.green : C.red, fontSize: 14, fontWeight: 800, margin: 0, fontFamily: "monospace" } },
+                    bl >= 0 ? "+" : "",
+                    fmtFull(bl))),
+            React.createElement("div", { style: { height: 7, background: C.border, borderRadius: 3, overflow: "hidden" } },
+                React.createElement("div", { style: { width: bp + "%", height: "100%", background: bp > 90 ? C.red : bp > 70 ? C.gold : C.green, borderRadius: 3, transition: "width .5s" } })),
+            React.createElement("p", { style: { color: C.muted, fontSize: 10, margin: "5px 0 0" } },
+                bp.toFixed(0),
+                "% of budget \u00B7 Savings rate: ",
+                ((income - totalSpent) / income * 100).toFixed(0),
+                "%")),
+        React.createElement(Tabs, { tabs: ["Overview", "Transactions"], active: tab, onChange: setTab }),
+        tab === "Overview" && ECATS.map(cat => {
+            const spent = (expenses || []).filter(e => e.cat === cat.name).reduce((s, e) => s + e.amt, 0);
+            if (!spent)
+                return null;
+            const bud = (cat.budget / 100) * budget;
+            const over = spent > bud;
+            return (React.createElement("div", { key: cat.name, style: { background: C.card, border: `1px solid ${over ? C.red + "50" : C.border}`, borderRadius: 14, padding: "13px 15px", marginBottom: 9 } },
+                React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 } },
+                    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
+                        React.createElement("span", { style: { fontSize: 17 } }, cat.icon),
+                        React.createElement("div", null,
+                            React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: "0 0 1px" } }, cat.name),
+                            React.createElement("p", { style: { color: C.muted, fontSize: 10, margin: 0 } },
+                                "Budget ",
+                                fmtFull(bud)))),
+                    React.createElement("div", { style: { textAlign: "right" } },
+                        React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: 800, margin: "0 0 2px" } }, fmtFull(spent)),
+                        over && React.createElement(Pill, { text: "Over!", color: C.red }))),
+                React.createElement("div", { style: { height: 4, background: C.border, borderRadius: 2 } },
+                    React.createElement("div", { style: { width: Math.min(spent / bud * 100, 100) + "%", height: "100%", background: over ? C.red : cat.color, borderRadius: 2 } }))));
+        }),
+        tab === "Transactions" && [...(expenses || [])].sort((a, b) => new Date(b.date) - new Date(a.date)).map(exp => {
+            const cat = ECATS.find(c => c.name === exp.cat);
+            return (React.createElement("div", { key: exp.id, style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 13, padding: "11px 14px", marginBottom: 7, display: "flex", alignItems: "center", justifyContent: "space-between" } },
+                React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9 } },
+                    React.createElement("span", { style: { fontSize: 18 } }, cat?.icon || "💸"),
+                    React.createElement("div", null,
+                        React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: 600, margin: "0 0 2px" } }, exp.name),
+                        React.createElement("div", { style: { display: "flex", gap: 5 } },
+                            React.createElement(Pill, { text: exp.cat, color: cat?.color || C.muted }),
+                            React.createElement("span", { style: { color: C.muted, fontSize: 10, alignSelf: "center" } }, exp.date)))),
+                React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7 } },
+                    React.createElement("p", { style: { color: C.red, fontSize: 13, fontWeight: 800, margin: 0, fontFamily: "monospace" } },
+                        "-",
+                        fmtFull(exp.amt)),
+                    React.createElement("button", { onClick: () => setEditing({ ...exp }), style: { background: C.card2, border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: C.muted, fontSize: 12 } }, "\u270F\uFE0F"),
+                    React.createElement("button", { onClick: () => setExpenses(ex => (ex || []).filter(e => e.id !== exp.id)), style: { background: C.red + "18", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: C.red, fontSize: 12 } }, "\uD83D\uDDD1"))));
+        }),
+        editing && (React.createElement(Sheet, { title: "Edit Expense", onClose: () => setEditing(null) },
+            React.createElement(Lbl, { C: C }, "Name"),
+            React.createElement(Inp, { C: C, value: editing.name, onChange: e => setEditing(d => ({ ...d, name: e.target.value })) }),
+            React.createElement(Lbl, { C: C }, "Category"),
+            React.createElement("select", { style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", color: C.text, fontSize: 14, width: "100%", outline: "none" }, value: editing.cat, onChange: e => setEditing(d => ({ ...d, cat: e.target.value })) }, ECATS.map(c => React.createElement("option", { key: c.name, value: c.name },
+                c.icon,
+                " ",
+                c.name))),
+            React.createElement(Lbl, { C: C }, "Amount (\u20B9)"),
+            React.createElement(Inp, { C: C, type: "number", value: editing.amt, onChange: e => setEditing(d => ({ ...d, amt: parseFloat(e.target.value) })) }),
+            React.createElement(GoldBtn, { onClick: () => { setExpenses(ex => (ex || []).map(e => e.id === editing.id ? { ...e, ...editing } : e)); setEditing(null); } }, "Save"))),
+        adding && (React.createElement(Sheet, { title: "Add Expense", onClose: () => setAdding(false) },
+            React.createElement(Lbl, { C: C }, "Name"),
+            React.createElement(Inp, { C: C, placeholder: "Zomato, Petrol\u2026", value: form.name, onChange: e => setForm(f => ({ ...f, name: e.target.value })) }),
+            React.createElement(Lbl, { C: C }, "Category"),
+            React.createElement("select", { style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", color: C.text, fontSize: 14, width: "100%", outline: "none" }, value: form.cat, onChange: e => setForm(f => ({ ...f, cat: e.target.value })) }, ECATS.map(c => React.createElement("option", { key: c.name, value: c.name },
+                c.icon,
+                " ",
+                c.name))),
+            React.createElement(Lbl, { C: C }, "Amount (\u20B9)"),
+            React.createElement(Inp, { C: C, type: "number", placeholder: "500", value: form.amt, onChange: e => setForm(f => ({ ...f, amt: e.target.value })) }),
+            React.createElement(Lbl, { C: C }, "Date"),
+            React.createElement(Inp, { C: C, type: "date", value: form.date, onChange: e => setForm(f => ({ ...f, date: e.target.value })) }),
+            React.createElement(GoldBtn, { onClick: () => {
+                    if (!form.name || !form.amt)
+                        return;
+                    setExpenses(ex => [...(ex || []), { ...form, id: uid(), amt: parseFloat(form.amt) }]);
+                    setAdding(false);
+                    setForm({ name: "", cat: "Food", amt: "", date: new Date().toISOString().slice(0, 10) });
+                } }, "Add Expense")))));
 }
 // ══════════════════════════════════════════════════════════════════════════════
 // SETTINGS — edit income, budget, name
@@ -419,32 +728,83 @@ function SpendScreen({ expenses, setExpenses, profile }) {
 function SettingsScreen({ profile, setProfile, secSettings, setSecSettings }) {
     const { C, isDark, toggleTheme } = useTheme();
     const { balHidden, setBalHidden } = useSec();
-    const [editProfile, setEditProfile] = useState(false);
-    const [pForm, setPForm] = useState({});
+    const [editProfile, setEditProfile] = (0, react_1.useState)(false);
+    const [pForm, setPForm] = (0, react_1.useState)({});
     const score = Object.values(secSettings || {}).filter(Boolean).length;
     const sc = score >= 5 ? C.green : score >= 3 ? C.gold : C.red;
-    return (_jsxs("div", { style: { padding: "0 14px 90px" }, children: [_jsx("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "18px 0 16px" }, children: "Settings" }), _jsx(SectionTitle, { children: "Your Profile" }), _jsxs(Card, { style: { marginBottom: 12 }, children: [_jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }, children: [_jsx("p", { style: { color: C.text, fontSize: 14, fontWeight: 700, margin: 0 }, children: "Personal & Financial" }), _jsx("button", { onClick: () => { setPForm({ ...profile }); setEditProfile(true); }, style: { background: C.gold + "22", border: `1px solid ${C.gold}40`, borderRadius: 9, padding: "5px 12px", cursor: "pointer", color: C.gold, fontSize: 12, fontWeight: 700 }, children: "Edit" })] }), [["Name", profile?.name || "—"], ["Monthly Income", fmtFull(profile?.income || 0)], ["Monthly Budget", fmtFull(profile?.budget || 0)], ["Risk Profile", profile?.risk || "moderate"]].map(([l, v]) => (_jsxs("div", { style: { display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.border}` }, children: [_jsx("span", { style: { color: C.muted, fontSize: 12 }, children: l }), _jsx("span", { style: { color: C.text, fontSize: 12, fontWeight: 600 }, children: v })] }, l)))] }), _jsx(SectionTitle, { children: "Appearance" }), _jsx(Card, { style: { marginBottom: 12 }, children: _jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12 }, children: [_jsx("span", { style: { fontSize: 22 }, children: isDark ? "🌙" : "☀️" }), _jsxs("div", { style: { flex: 1 }, children: [_jsx("p", { style: { color: C.text, fontSize: 14, fontWeight: 700, margin: "0 0 1px" }, children: isDark ? "Dark Mode" : "Light Mode" }), _jsx("p", { style: { color: C.muted, fontSize: 11, margin: 0 }, children: "Toggle app theme" })] }), _jsx(Toggle, { value: isDark, onChange: toggleTheme, color: C.purple })] }) }), _jsxs(SectionTitle, { children: ["Security \u00B7 ", score, "/6 ", _jsxs("span", { style: { color: sc }, children: ["\u25CF ", score >= 5 ? "Excellent" : score >= 3 ? "Good" : "Weak"] })] }), _jsxs(Card, { children: [_jsx("div", { style: { height: 5, background: C.border, borderRadius: 2, overflow: "hidden", marginBottom: 14 }, children: _jsx("div", { style: { width: (score / 6 * 100) + "%", height: "100%", background: sc, transition: "width .5s" } }) }), [
-                        { k: "pinEnabled", i: "🔑", l: "PIN Lock", s: "Required on app open" },
-                        { k: "bioEnabled", i: "👆", l: "Biometric", s: "Fingerprint / Face ID" },
-                        { k: "twoFA", i: "🛡️", l: "2-Step Auth", s: "OTP for sensitive actions" },
-                        { k: "balHide", i: "👁️", l: "Hide Balances", s: "Blur amounts by default" },
-                        { k: "maskIDs", i: "🔒", l: "Mask IDs", s: "Hide account numbers" },
-                        { k: "alerts", i: "🔔", l: "Security Alerts", s: "Suspicious login alerts" },
-                    ].map((r, i, arr) => (_jsxs("div", { style: { display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none" }, children: [_jsx("span", { style: { fontSize: 17, flexShrink: 0 }, children: r.i }), _jsxs("div", { style: { flex: 1 }, children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: 600, margin: "0 0 1px" }, children: r.l }), _jsx("p", { style: { color: C.muted, fontSize: 11, margin: 0 }, children: r.s })] }), _jsx(Toggle, { value: (secSettings || {})[r.k], onChange: v => { setSecSettings(s => ({ ...s, [r.k]: v })); if (r.k === "balHide")
-                                    setBalHidden(v); }, color: C.green })] }, r.k)))] }), _jsx(SectionTitle, { children: "Data" }), _jsxs(Card, { children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: "0 0 6px" }, children: "Saved in your browser" }), _jsx("p", { style: { color: C.muted, fontSize: 12, margin: "0 0 12px", lineHeight: 1.6 }, children: "All your investments, expenses, goals and settings are saved in localStorage on this device." }), _jsx("button", { onClick: () => { if (window.confirm("Delete ALL app data? This cannot be undone.")) {
-                            localStorage.clear();
-                            window.location.reload();
-                        } }, style: { background: C.red + "18", border: `1px solid ${C.red}30`, borderRadius: 12, padding: "9px 14px", cursor: "pointer", color: C.red, fontSize: 12, fontWeight: 700 }, children: "\uD83D\uDDD1\uFE0F Clear All Data" })] }), editProfile && (_jsxs(Sheet, { title: "Edit Profile", onClose: () => setEditProfile(false), children: [_jsx(Lbl, { C: C, children: "Your Name" }), _jsx(Inp, { C: C, placeholder: "Rahul Sharma", value: pForm.name || "", onChange: e => setPForm(f => ({ ...f, name: e.target.value })) }), _jsx(Lbl, { C: C, children: "Monthly Income (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "85000", value: pForm.income || "", onChange: e => setPForm(f => ({ ...f, income: parseFloat(e.target.value) || 0 })) }), _jsx(Lbl, { C: C, children: "Monthly Budget (\u20B9)" }), _jsx(Inp, { C: C, type: "number", placeholder: "60000", value: pForm.budget || "", onChange: e => setPForm(f => ({ ...f, budget: parseFloat(e.target.value) || 0 })) }), _jsx(Lbl, { C: C, children: "Risk Profile" }), _jsxs("select", { style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", color: C.text, fontSize: 14, width: "100%", outline: "none" }, value: pForm.risk || "moderate", onChange: e => setPForm(f => ({ ...f, risk: e.target.value })), children: [_jsx("option", { value: "conservative", children: "\uD83D\uDEE1\uFE0F Conservative" }), _jsx("option", { value: "moderate", children: "\u2696\uFE0F Moderate" }), _jsx("option", { value: "aggressive", children: "\uD83D\uDE80 Aggressive" })] }), _jsx(GoldBtn, { onClick: () => { setProfile(pForm); setEditProfile(false); }, children: "Save Profile" })] }))] }));
+    return (React.createElement("div", { style: { padding: "0 14px 90px" } },
+        React.createElement("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "18px 0 16px" } }, "Settings"),
+        React.createElement(SectionTitle, null, "Your Profile"),
+        React.createElement(Card, { style: { marginBottom: 12 } },
+            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } },
+                React.createElement("p", { style: { color: C.text, fontSize: 14, fontWeight: 700, margin: 0 } }, "Personal & Financial"),
+                React.createElement("button", { onClick: () => { setPForm({ ...profile }); setEditProfile(true); }, style: { background: C.gold + "22", border: `1px solid ${C.gold}40`, borderRadius: 9, padding: "5px 12px", cursor: "pointer", color: C.gold, fontSize: 12, fontWeight: 700 } }, "Edit")),
+            [["Name", profile?.name || "—"], ["Monthly Income", fmtFull(profile?.income || 0)], ["Monthly Budget", fmtFull(profile?.budget || 0)], ["Risk Profile", profile?.risk || "moderate"]].map(([l, v]) => (React.createElement("div", { key: l, style: { display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.border}` } },
+                React.createElement("span", { style: { color: C.muted, fontSize: 12 } }, l),
+                React.createElement("span", { style: { color: C.text, fontSize: 12, fontWeight: 600 } }, v))))),
+        React.createElement(SectionTitle, null, "Appearance"),
+        React.createElement(Card, { style: { marginBottom: 12 } },
+            React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } },
+                React.createElement("span", { style: { fontSize: 22 } }, isDark ? "🌙" : "☀️"),
+                React.createElement("div", { style: { flex: 1 } },
+                    React.createElement("p", { style: { color: C.text, fontSize: 14, fontWeight: 700, margin: "0 0 1px" } }, isDark ? "Dark Mode" : "Light Mode"),
+                    React.createElement("p", { style: { color: C.muted, fontSize: 11, margin: 0 } }, "Toggle app theme")),
+                React.createElement(Toggle, { value: isDark, onChange: toggleTheme, color: C.purple }))),
+        React.createElement(SectionTitle, null,
+            "Security \u00B7 ",
+            score,
+            "/6 ",
+            React.createElement("span", { style: { color: sc } },
+                "\u25CF ",
+                score >= 5 ? "Excellent" : score >= 3 ? "Good" : "Weak")),
+        React.createElement(Card, null,
+            React.createElement("div", { style: { height: 5, background: C.border, borderRadius: 2, overflow: "hidden", marginBottom: 14 } },
+                React.createElement("div", { style: { width: (score / 6 * 100) + "%", height: "100%", background: sc, transition: "width .5s" } })),
+            [
+                { k: "pinEnabled", i: "🔑", l: "PIN Lock", s: "Required on app open" },
+                { k: "bioEnabled", i: "👆", l: "Biometric", s: "Fingerprint / Face ID" },
+                { k: "twoFA", i: "🛡️", l: "2-Step Auth", s: "OTP for sensitive actions" },
+                { k: "balHide", i: "👁️", l: "Hide Balances", s: "Blur amounts by default" },
+                { k: "maskIDs", i: "🔒", l: "Mask IDs", s: "Hide account numbers" },
+                { k: "alerts", i: "🔔", l: "Security Alerts", s: "Suspicious login alerts" },
+            ].map((r, i, arr) => (React.createElement("div", { key: r.k, style: { display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none" } },
+                React.createElement("span", { style: { fontSize: 17, flexShrink: 0 } }, r.i),
+                React.createElement("div", { style: { flex: 1 } },
+                    React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: 600, margin: "0 0 1px" } }, r.l),
+                    React.createElement("p", { style: { color: C.muted, fontSize: 11, margin: 0 } }, r.s)),
+                React.createElement(Toggle, { value: (secSettings || {})[r.k], onChange: v => { setSecSettings(s => ({ ...s, [r.k]: v })); if (r.k === "balHide")
+                        setBalHidden(v); }, color: C.green }))))),
+        React.createElement(SectionTitle, null, "Data"),
+        React.createElement(Card, null,
+            React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: "0 0 6px" } }, "Saved in your browser"),
+            React.createElement("p", { style: { color: C.muted, fontSize: 12, margin: "0 0 12px", lineHeight: 1.6 } }, "All your investments, expenses, goals and settings are saved in localStorage on this device."),
+            React.createElement("button", { onClick: () => { if (window.confirm("Delete ALL app data? This cannot be undone.")) {
+                    localStorage.clear();
+                    window.location.reload();
+                } }, style: { background: C.red + "18", border: `1px solid ${C.red}30`, borderRadius: 12, padding: "9px 14px", cursor: "pointer", color: C.red, fontSize: 12, fontWeight: 700 } }, "\uD83D\uDDD1\uFE0F Clear All Data")),
+        editProfile && (React.createElement(Sheet, { title: "Edit Profile", onClose: () => setEditProfile(false) },
+            React.createElement(Lbl, { C: C }, "Your Name"),
+            React.createElement(Inp, { C: C, placeholder: "Rahul Sharma", value: pForm.name || "", onChange: e => setPForm(f => ({ ...f, name: e.target.value })) }),
+            React.createElement(Lbl, { C: C }, "Monthly Income (\u20B9)"),
+            React.createElement(Inp, { C: C, type: "number", placeholder: "85000", value: pForm.income || "", onChange: e => setPForm(f => ({ ...f, income: parseFloat(e.target.value) || 0 })) }),
+            React.createElement(Lbl, { C: C }, "Monthly Budget (\u20B9)"),
+            React.createElement(Inp, { C: C, type: "number", placeholder: "60000", value: pForm.budget || "", onChange: e => setPForm(f => ({ ...f, budget: parseFloat(e.target.value) || 0 })) }),
+            React.createElement(Lbl, { C: C }, "Risk Profile"),
+            React.createElement("select", { style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", color: C.text, fontSize: 14, width: "100%", outline: "none" }, value: pForm.risk || "moderate", onChange: e => setPForm(f => ({ ...f, risk: e.target.value })) },
+                React.createElement("option", { value: "conservative" }, "\uD83D\uDEE1\uFE0F Conservative"),
+                React.createElement("option", { value: "moderate" }, "\u2696\uFE0F Moderate"),
+                React.createElement("option", { value: "aggressive" }, "\uD83D\uDE80 Aggressive")),
+            React.createElement(GoldBtn, { onClick: () => { setProfile(pForm); setEditProfile(false); } }, "Save Profile")))));
 }
 // ══════════════════════════════════════════════════════════════════════════════
 // REMAINING SCREENS (Watchlist, Bills, Notifs, AI Advisor, More)
 // ══════════════════════════════════════════════════════════════════════════════
 function WatchlistScreen({ watchlist, setWatchlist }) {
     const { C } = useTheme();
-    const [loading, setLoading] = useState(false);
-    const [lastSync, setLastSync] = useState(null);
-    const [adding, setAdding] = useState(false);
-    const [form, setForm] = useState({ name: "", sym: "", exch: "NSE", alertH: "", alertL: "", buyPrice: "" });
+    const [loading, setLoading] = (0, react_1.useState)(false);
+    const [lastSync, setLastSync] = (0, react_1.useState)(null);
+    const [adding, setAdding] = (0, react_1.useState)(false);
+    const [form, setForm] = (0, react_1.useState)({ name: "", sym: "", exch: "NSE", alertH: "", alertL: "", buyPrice: "" });
     const refresh = async () => {
         setLoading(true);
         const map = { BTC: "bitcoin", ETH: "ethereum", SOL: "solana", BNB: "binancecoin" };
@@ -470,36 +830,124 @@ function WatchlistScreen({ watchlist, setWatchlist }) {
         setWatchlist(wl);
         setLoading(false);
     };
-    return (_jsxs("div", { style: { padding: "0 14px 90px" }, children: [_jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 14px" }, children: [_jsxs("div", { children: [_jsx("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "0 0 2px" }, children: "Watchlist" }), _jsx("p", { style: { color: C.muted, fontSize: 12, margin: 0 }, children: "Live CoinGecko crypto prices" })] }), _jsxs("div", { style: { display: "flex", gap: 8 }, children: [_jsxs("button", { onClick: refresh, disabled: loading, style: { background: loading ? C.border : C.gold, border: "none", borderRadius: 12, padding: "7px 13px", cursor: loading ? "default" : "pointer", color: loading ? C.muted : "#000", fontSize: 13, fontWeight: 700 }, children: ["\uD83D\uDD04 ", loading ? "…" : "Refresh"] }), _jsx("button", { onClick: () => setAdding(true), style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "7px 11px", cursor: "pointer", color: C.muted }, children: "+" })] })] }), lastSync && _jsxs("p", { style: { color: C.muted, fontSize: 11, margin: "0 0 12px" }, children: ["Updated ", lastSync.toLocaleTimeString("en-IN")] }), (watchlist || []).map(s => {
-                const up = (s.changePct || 0) >= 0;
-                const gp = s.buyPrice ? parseFloat(pctChg(s.price, s.buyPrice)) : null;
-                return (_jsxs("div", { style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, padding: 15, marginBottom: 12 }, children: [_jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }, children: [_jsxs("div", { children: [_jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }, children: [_jsx("div", { style: { width: 7, height: 7, borderRadius: "50%", background: up ? C.green : C.red } }), _jsx("p", { style: { color: C.text, fontSize: 14, fontWeight: 800, margin: 0 }, children: s.name }), _jsx(Pill, { text: s.exch, color: s.exch === "Crypto" ? C.purple : C.blue })] }), _jsx("p", { style: { color: C.muted, fontSize: 12, margin: 0 }, children: s.sym })] }), _jsxs("div", { style: { textAlign: "right" }, children: [_jsxs("p", { style: { color: C.text, fontSize: 19, fontWeight: 900, margin: "0 0 2px", fontFamily: "monospace" }, children: ["\u20B9", s.price?.toLocaleString("en-IN")] }), _jsxs("p", { style: { color: up ? C.green : C.red, fontSize: 12, fontWeight: 700, margin: 0 }, children: [up ? "+" : "", parseFloat(s.changePct || 0).toFixed(2), "%"] })] })] }), _jsx("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }, children: [["High Alert", "₹" + s.alertH?.toLocaleString("en-IN"), C.green], ["Low Alert", "₹" + s.alertL?.toLocaleString("en-IN"), C.red], ["P&L", gp === null ? "—" : (gp >= 0 ? "+" : "") + gp.toFixed(1) + "%", gp === null ? C.muted : gp >= 0 ? C.green : C.red]].map(([l, v, c]) => (_jsxs("div", { style: { background: C.card2, borderRadius: 10, padding: "8px 10px" }, children: [_jsx("p", { style: { color: C.muted, fontSize: 9, textTransform: "uppercase", margin: "0 0 3px" }, children: l }), _jsx("p", { style: { color: c, fontSize: 11, fontWeight: 700, margin: 0 }, children: v })] }, l))) }), _jsx("button", { onClick: () => setWatchlist(w => (w || []).filter(x => x.id !== s.id)), style: { background: "none", border: "none", color: C.muted, fontSize: 11, cursor: "pointer", marginTop: 8, padding: 0 }, children: "Remove" })] }, s.id));
-            }), adding && (_jsxs(Sheet, { title: "Add to Watchlist", onClose: () => setAdding(false), children: [_jsx(Lbl, { C: C, children: "Name" }), _jsx(Inp, { C: C, placeholder: "HDFC Bank / Bitcoin", value: form.name, onChange: e => setForm(f => ({ ...f, name: e.target.value })) }), _jsx(Lbl, { C: C, children: "Symbol" }), _jsx(Inp, { C: C, placeholder: "HDFCBANK / BTC", value: form.sym, onChange: e => setForm(f => ({ ...f, sym: e.target.value })) }), _jsx(Lbl, { C: C, children: "Exchange" }), _jsx("select", { style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", color: C.text, fontSize: 14, width: "100%", outline: "none" }, value: form.exch, onChange: e => setForm(f => ({ ...f, exch: e.target.value })), children: ["NSE", "BSE", "Crypto"].map(e => _jsx("option", { children: e }, e)) }), _jsx(Lbl, { C: C, children: "Alert High (\u20B9)" }), _jsx(Inp, { C: C, type: "number", value: form.alertH, onChange: e => setForm(f => ({ ...f, alertH: e.target.value })) }), _jsx(Lbl, { C: C, children: "Alert Low (\u20B9)" }), _jsx(Inp, { C: C, type: "number", value: form.alertL, onChange: e => setForm(f => ({ ...f, alertL: e.target.value })) }), _jsx(Lbl, { C: C, children: "Your Buy Price (optional)" }), _jsx(Inp, { C: C, type: "number", value: form.buyPrice, onChange: e => setForm(f => ({ ...f, buyPrice: e.target.value })) }), _jsx(GoldBtn, { onClick: () => {
-                            if (!form.name || !form.sym)
-                                return;
-                            setWatchlist(w => [...(w || []), { ...form, id: uid(), price: parseFloat(form.alertH || 0) * 0.9, changePct: 0, alertH: parseFloat(form.alertH || 0), alertL: parseFloat(form.alertL || 0), buyPrice: form.buyPrice ? parseFloat(form.buyPrice) : null }]);
-                            setAdding(false);
-                            setForm({ name: "", sym: "", exch: "NSE", alertH: "", alertL: "", buyPrice: "" });
-                        }, children: "Add" })] }))] }));
+    return (React.createElement("div", { style: { padding: "0 14px 90px" } },
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 14px" } },
+            React.createElement("div", null,
+                React.createElement("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "0 0 2px" } }, "Watchlist"),
+                React.createElement("p", { style: { color: C.muted, fontSize: 12, margin: 0 } }, "Live CoinGecko crypto prices")),
+            React.createElement("div", { style: { display: "flex", gap: 8 } },
+                React.createElement("button", { onClick: refresh, disabled: loading, style: { background: loading ? C.border : C.gold, border: "none", borderRadius: 12, padding: "7px 13px", cursor: loading ? "default" : "pointer", color: loading ? C.muted : "#000", fontSize: 13, fontWeight: 700 } },
+                    "\uD83D\uDD04 ",
+                    loading ? "…" : "Refresh"),
+                React.createElement("button", { onClick: () => setAdding(true), style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "7px 11px", cursor: "pointer", color: C.muted } }, "+"))),
+        lastSync && React.createElement("p", { style: { color: C.muted, fontSize: 11, margin: "0 0 12px" } },
+            "Updated ",
+            lastSync.toLocaleTimeString("en-IN")),
+        (watchlist || []).map(s => {
+            const up = (s.changePct || 0) >= 0;
+            const gp = s.buyPrice ? parseFloat(pctChg(s.price, s.buyPrice)) : null;
+            return (React.createElement("div", { key: s.id, style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, padding: 15, marginBottom: 12 } },
+                React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 } },
+                    React.createElement("div", null,
+                        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 3 } },
+                            React.createElement("div", { style: { width: 7, height: 7, borderRadius: "50%", background: up ? C.green : C.red } }),
+                            React.createElement("p", { style: { color: C.text, fontSize: 14, fontWeight: 800, margin: 0 } }, s.name),
+                            React.createElement(Pill, { text: s.exch, color: s.exch === "Crypto" ? C.purple : C.blue })),
+                        React.createElement("p", { style: { color: C.muted, fontSize: 12, margin: 0 } }, s.sym)),
+                    React.createElement("div", { style: { textAlign: "right" } },
+                        React.createElement("p", { style: { color: C.text, fontSize: 19, fontWeight: 900, margin: "0 0 2px", fontFamily: "monospace" } },
+                            "\u20B9",
+                            s.price?.toLocaleString("en-IN")),
+                        React.createElement("p", { style: { color: up ? C.green : C.red, fontSize: 12, fontWeight: 700, margin: 0 } },
+                            up ? "+" : "",
+                            parseFloat(s.changePct || 0).toFixed(2),
+                            "%"))),
+                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 } }, [["High Alert", "₹" + s.alertH?.toLocaleString("en-IN"), C.green], ["Low Alert", "₹" + s.alertL?.toLocaleString("en-IN"), C.red], ["P&L", gp === null ? "—" : (gp >= 0 ? "+" : "") + gp.toFixed(1) + "%", gp === null ? C.muted : gp >= 0 ? C.green : C.red]].map(([l, v, c]) => (React.createElement("div", { key: l, style: { background: C.card2, borderRadius: 10, padding: "8px 10px" } },
+                    React.createElement("p", { style: { color: C.muted, fontSize: 9, textTransform: "uppercase", margin: "0 0 3px" } }, l),
+                    React.createElement("p", { style: { color: c, fontSize: 11, fontWeight: 700, margin: 0 } }, v))))),
+                React.createElement("button", { onClick: () => setWatchlist(w => (w || []).filter(x => x.id !== s.id)), style: { background: "none", border: "none", color: C.muted, fontSize: 11, cursor: "pointer", marginTop: 8, padding: 0 } }, "Remove")));
+        }),
+        adding && (React.createElement(Sheet, { title: "Add to Watchlist", onClose: () => setAdding(false) },
+            React.createElement(Lbl, { C: C }, "Name"),
+            React.createElement(Inp, { C: C, placeholder: "HDFC Bank / Bitcoin", value: form.name, onChange: e => setForm(f => ({ ...f, name: e.target.value })) }),
+            React.createElement(Lbl, { C: C }, "Symbol"),
+            React.createElement(Inp, { C: C, placeholder: "HDFCBANK / BTC", value: form.sym, onChange: e => setForm(f => ({ ...f, sym: e.target.value })) }),
+            React.createElement(Lbl, { C: C }, "Exchange"),
+            React.createElement("select", { style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", color: C.text, fontSize: 14, width: "100%", outline: "none" }, value: form.exch, onChange: e => setForm(f => ({ ...f, exch: e.target.value })) }, ["NSE", "BSE", "Crypto"].map(e => React.createElement("option", { key: e }, e))),
+            React.createElement(Lbl, { C: C }, "Alert High (\u20B9)"),
+            React.createElement(Inp, { C: C, type: "number", value: form.alertH, onChange: e => setForm(f => ({ ...f, alertH: e.target.value })) }),
+            React.createElement(Lbl, { C: C }, "Alert Low (\u20B9)"),
+            React.createElement(Inp, { C: C, type: "number", value: form.alertL, onChange: e => setForm(f => ({ ...f, alertL: e.target.value })) }),
+            React.createElement(Lbl, { C: C }, "Your Buy Price (optional)"),
+            React.createElement(Inp, { C: C, type: "number", value: form.buyPrice, onChange: e => setForm(f => ({ ...f, buyPrice: e.target.value })) }),
+            React.createElement(GoldBtn, { onClick: () => {
+                    if (!form.name || !form.sym)
+                        return;
+                    setWatchlist(w => [...(w || []), { ...form, id: uid(), price: parseFloat(form.alertH || 0) * 0.9, changePct: 0, alertH: parseFloat(form.alertH || 0), alertL: parseFloat(form.alertL || 0), buyPrice: form.buyPrice ? parseFloat(form.buyPrice) : null }]);
+                    setAdding(false);
+                    setForm({ name: "", sym: "", exch: "NSE", alertH: "", alertL: "", buyPrice: "" });
+                } }, "Add")))));
 }
 function BillsScreen({ bills, setBills }) {
     const { C } = useTheme();
     const ov = (bills || []).filter(b => b.status === "overdue");
     const up = (bills || []).filter(b => b.status === "upcoming");
-    return (_jsxs("div", { style: { padding: "0 14px 90px" }, children: [_jsx("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "18px 0 14px" }, children: "Bills & Subscriptions" }), _jsxs("div", { style: { display: "flex", gap: 8, marginBottom: 14 }, children: [_jsx(MiniStat, { label: "Monthly Total", value: fmtINR((bills || []).reduce((s, b) => s + b.amt, 0)) }), _jsx(MiniStat, { label: "Overdue", value: String(ov.length), color: ov.length > 0 ? C.red : C.green })] }), ov.length > 0 && _jsxs(_Fragment, { children: [_jsx(SectionTitle, { children: "\u26A0\uFE0F Overdue" }), ov.map(b => (_jsxs("div", { style: { background: C.card, border: `1px solid ${C.red}40`, borderRadius: 15, padding: "13px 15px", marginBottom: 9, display: "flex", alignItems: "center", justifyContent: "space-between" }, children: [_jsxs("div", { style: { display: "flex", alignItems: "center", gap: 9 }, children: [_jsx("span", { style: { fontSize: 20 }, children: b.icon }), _jsxs("div", { children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: "0 0 2px" }, children: b.name }), _jsx("p", { style: { color: C.red, fontSize: 11, margin: 0 }, children: "Overdue!" })] })] }), _jsxs("div", { style: { textAlign: "right" }, children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: 800, margin: "0 0 6px" }, children: fmtFull(b.amt) }), _jsx("button", { onClick: () => setBills(bs => (bs || []).map(x => x.id === b.id ? { ...x, status: "paid" } : x)), style: { background: C.green, border: "none", borderRadius: 8, padding: "5px 11px", cursor: "pointer", color: "#fff", fontSize: 11, fontWeight: 700 }, children: "Pay Now" })] })] }, b.id)))] }), _jsx(SectionTitle, { children: "\uD83D\uDCC5 Upcoming" }), up.map(b => (_jsxs("div", { style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 15, padding: "13px 15px", marginBottom: 9, display: "flex", alignItems: "center", justifyContent: "space-between" }, children: [_jsxs("div", { style: { display: "flex", alignItems: "center", gap: 9 }, children: [_jsx("span", { style: { fontSize: 20 }, children: b.icon }), _jsxs("div", { children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: "0 0 2px" }, children: b.name }), _jsx(Pill, { text: b.autoPay ? "Auto-pay" : "Manual", color: b.autoPay ? C.green : C.gold })] })] }), _jsxs("div", { style: { textAlign: "right" }, children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: 800, margin: "0 0 6px" }, children: fmtFull(b.amt) }), _jsx(Toggle, { value: b.autoPay, onChange: v => setBills(bs => (bs || []).map(x => x.id === b.id ? { ...x, autoPay: v } : x)) })] })] }, b.id))), _jsx(SectionTitle, { children: "\u2705 Paid" }), (bills || []).filter(b => b.status === "paid").map(b => (_jsxs("div", { style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 13, padding: "11px 14px", marginBottom: 7, opacity: 0.6, display: "flex", alignItems: "center", justifyContent: "space-between" }, children: [_jsxs("div", { style: { display: "flex", alignItems: "center", gap: 9 }, children: [_jsx("span", { style: { fontSize: 18 }, children: b.icon }), _jsx("p", { style: { color: C.text, fontSize: 13, margin: 0 }, children: b.name })] }), _jsx("p", { style: { color: C.muted, fontSize: 13, fontWeight: 700, margin: 0 }, children: fmtFull(b.amt) })] }, b.id)))] }));
+    return (React.createElement("div", { style: { padding: "0 14px 90px" } },
+        React.createElement("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "18px 0 14px" } }, "Bills & Subscriptions"),
+        React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14 } },
+            React.createElement(MiniStat, { label: "Monthly Total", value: fmtINR((bills || []).reduce((s, b) => s + b.amt, 0)) }),
+            React.createElement(MiniStat, { label: "Overdue", value: String(ov.length), color: ov.length > 0 ? C.red : C.green })),
+        ov.length > 0 && React.createElement(React.Fragment, null,
+            React.createElement(SectionTitle, null, "\u26A0\uFE0F Overdue"),
+            ov.map(b => (React.createElement("div", { key: b.id, style: { background: C.card, border: `1px solid ${C.red}40`, borderRadius: 15, padding: "13px 15px", marginBottom: 9, display: "flex", alignItems: "center", justifyContent: "space-between" } },
+                React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9 } },
+                    React.createElement("span", { style: { fontSize: 20 } }, b.icon),
+                    React.createElement("div", null,
+                        React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: "0 0 2px" } }, b.name),
+                        React.createElement("p", { style: { color: C.red, fontSize: 11, margin: 0 } }, "Overdue!"))),
+                React.createElement("div", { style: { textAlign: "right" } },
+                    React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: 800, margin: "0 0 6px" } }, fmtFull(b.amt)),
+                    React.createElement("button", { onClick: () => setBills(bs => (bs || []).map(x => x.id === b.id ? { ...x, status: "paid" } : x)), style: { background: C.green, border: "none", borderRadius: 8, padding: "5px 11px", cursor: "pointer", color: "#fff", fontSize: 11, fontWeight: 700 } }, "Pay Now")))))),
+        React.createElement(SectionTitle, null, "\uD83D\uDCC5 Upcoming"),
+        up.map(b => (React.createElement("div", { key: b.id, style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 15, padding: "13px 15px", marginBottom: 9, display: "flex", alignItems: "center", justifyContent: "space-between" } },
+            React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9 } },
+                React.createElement("span", { style: { fontSize: 20 } }, b.icon),
+                React.createElement("div", null,
+                    React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: "0 0 2px" } }, b.name),
+                    React.createElement(Pill, { text: b.autoPay ? "Auto-pay" : "Manual", color: b.autoPay ? C.green : C.gold }))),
+            React.createElement("div", { style: { textAlign: "right" } },
+                React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: 800, margin: "0 0 6px" } }, fmtFull(b.amt)),
+                React.createElement(Toggle, { value: b.autoPay, onChange: v => setBills(bs => (bs || []).map(x => x.id === b.id ? { ...x, autoPay: v } : x)) }))))),
+        React.createElement(SectionTitle, null, "\u2705 Paid"),
+        (bills || []).filter(b => b.status === "paid").map(b => (React.createElement("div", { key: b.id, style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 13, padding: "11px 14px", marginBottom: 7, opacity: 0.6, display: "flex", alignItems: "center", justifyContent: "space-between" } },
+            React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9 } },
+                React.createElement("span", { style: { fontSize: 18 } }, b.icon),
+                React.createElement("p", { style: { color: C.text, fontSize: 13, margin: 0 } }, b.name)),
+            React.createElement("p", { style: { color: C.muted, fontSize: 13, fontWeight: 700, margin: 0 } }, fmtFull(b.amt)))))));
 }
 function NotifsScreen({ notifs, setNotifs }) {
     const { C } = useTheme();
     const icons = { alert: "🔔", warning: "⚠️", success: "✅", info: "ℹ️" };
     const colors = { alert: C.blue, warning: C.gold, success: C.green, info: C.muted };
-    return (_jsxs("div", { style: { padding: "0 14px 90px" }, children: [_jsxs("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 14px" }, children: [_jsx("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: 0 }, children: "Notifications" }), (notifs || []).some(n => !n.read) && _jsx("button", { onClick: () => setNotifs(n => (n || []).map(x => ({ ...x, read: true }))), style: { background: "none", border: "none", color: C.gold, fontSize: 12, fontWeight: 700, cursor: "pointer" }, children: "Mark all read" })] }), (notifs || []).map(n => (_jsxs("div", { onClick: () => setNotifs(ns => (ns || []).map(x => x.id === n.id ? { ...x, read: true } : x)), style: { background: n.read ? C.card : C.card2, border: `1px solid ${n.read ? C.border : colors[n.type] + "50"}`, borderRadius: 15, padding: "13px 15px", marginBottom: 9, cursor: "pointer", position: "relative" }, children: [!n.read && _jsx("div", { style: { position: "absolute", top: 14, right: 14, width: 7, height: 7, borderRadius: "50%", background: colors[n.type] } }), _jsxs("div", { style: { display: "flex", gap: 9, alignItems: "flex-start" }, children: [_jsx("span", { style: { fontSize: 18 }, children: icons[n.type] }), _jsxs("div", { style: { flex: 1 }, children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: n.read ? 600 : 800, margin: "0 0 3px" }, children: n.title }), _jsx("p", { style: { color: C.muted, fontSize: 12, margin: "0 0 3px", lineHeight: 1.5 }, children: n.body }), _jsx("span", { style: { color: C.muted, fontSize: 10 }, children: n.time })] })] })] }, n.id)))] }));
+    return (React.createElement("div", { style: { padding: "0 14px 90px" } },
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 14px" } },
+            React.createElement("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: 0 } }, "Notifications"),
+            (notifs || []).some(n => !n.read) && React.createElement("button", { onClick: () => setNotifs(n => (n || []).map(x => ({ ...x, read: true }))), style: { background: "none", border: "none", color: C.gold, fontSize: 12, fontWeight: 700, cursor: "pointer" } }, "Mark all read")),
+        (notifs || []).map(n => (React.createElement("div", { key: n.id, onClick: () => setNotifs(ns => (ns || []).map(x => x.id === n.id ? { ...x, read: true } : x)), style: { background: n.read ? C.card : C.card2, border: `1px solid ${n.read ? C.border : colors[n.type] + "50"}`, borderRadius: 15, padding: "13px 15px", marginBottom: 9, cursor: "pointer", position: "relative" } },
+            !n.read && React.createElement("div", { style: { position: "absolute", top: 14, right: 14, width: 7, height: 7, borderRadius: "50%", background: colors[n.type] } }),
+            React.createElement("div", { style: { display: "flex", gap: 9, alignItems: "flex-start" } },
+                React.createElement("span", { style: { fontSize: 18 } }, icons[n.type]),
+                React.createElement("div", { style: { flex: 1 } },
+                    React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: n.read ? 600 : 800, margin: "0 0 3px" } }, n.title),
+                    React.createElement("p", { style: { color: C.muted, fontSize: 12, margin: "0 0 3px", lineHeight: 1.5 } }, n.body),
+                    React.createElement("span", { style: { color: C.muted, fontSize: 10 } }, n.time))))))));
 }
 function AIAdvisor({ expenses, goals, portfolio, profile }) {
     const { C } = useTheme();
-    const [msgs, setMsgs] = useState([{ role: "assistant", text: "Namaste! 🙏 I'm your AI Financial Advisor. I can see your full portfolio — ask me anything about investments, SIPs, tax planning, or goals." }]);
-    const [input, setInput] = useState("");
-    const [loading, setLoading] = useState(false);
-    const bottomRef = useRef(null);
+    const [msgs, setMsgs] = (0, react_1.useState)([{ role: "assistant", text: "Namaste! 🙏 I'm your AI Financial Advisor. I can see your full portfolio — ask me anything about investments, SIPs, tax planning, or goals." }]);
+    const [input, setInput] = (0, react_1.useState)("");
+    const [loading, setLoading] = (0, react_1.useState)(false);
+    const bottomRef = (0, react_1.useRef)(null);
     const SUGG = ["Am I saving enough?", "Which SIP gives best XIRR?", "How to reduce tax this FY?", "Should I increase my SIP?", "Am I on track for my goals?"];
     const p = portfolio;
     const totalNW = (p.stocks || []).reduce((s, i) => s + i.currentPrice, 0) + (p.crypto || []).reduce((s, i) => s + i.currentPrice, 0) + (p.mutualFunds || []).reduce((s, i) => s + i.currentValue, 0) + (p.fds || []).reduce((s, f) => s + f.principal, 0) + (p.gold || []).reduce((s, g) => s + g.grams * g.currentRatePerGram, 0) + (p.govt || []).reduce((s, g) => s + g.balance, 0);
@@ -521,8 +969,28 @@ function AIAdvisor({ expenses, goals, portfolio, profile }) {
         }
         setLoading(false);
     };
-    useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, loading]);
-    return (_jsxs("div", { style: { display: "flex", flexDirection: "column", height: "calc(100vh - 70px)" }, children: [_jsxs("div", { style: { padding: "16px 16px 12px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }, children: [_jsx("div", { style: { width: 38, height: 38, borderRadius: 13, background: `linear-gradient(135deg,${C.purple},${C.blue})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }, children: "\u2728" }), _jsxs("div", { children: [_jsx("p", { style: { color: C.text, fontSize: 14, fontWeight: 800, margin: "0 0 1px" }, children: "AI Financial Advisor" }), _jsx("p", { style: { color: C.green, fontSize: 11, margin: 0 }, children: "\u25CF Knows your real portfolio \u00B7 Powered by Claude" })] })] }), _jsxs("div", { style: { flex: 1, overflowY: "auto", padding: "12px 14px", scrollbarWidth: "none" }, children: [msgs.map((m, i) => (_jsxs("div", { style: { display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", marginBottom: 10 }, children: [m.role === "assistant" && _jsx("div", { style: { width: 24, height: 24, borderRadius: 7, background: `linear-gradient(135deg,${C.purple},${C.blue})`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4, fontSize: 13 }, children: "\u2728" }), _jsx("div", { style: { maxWidth: "86%", background: m.role === "user" ? C.gold : C.card, borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px", padding: "10px 13px", border: m.role === "user" ? "none" : `1px solid ${C.border}` }, children: _jsx("p", { style: { color: m.role === "user" ? "#000" : C.text, fontSize: 13, margin: 0, lineHeight: 1.65 }, children: m.text }) })] }, i))), loading && (_jsxs("div", { style: { display: "flex", gap: 7, alignItems: "flex-start", marginBottom: 10 }, children: [_jsx("div", { style: { width: 24, height: 24, borderRadius: 7, background: `linear-gradient(135deg,${C.purple},${C.blue})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }, children: "\u2728" }), _jsx("div", { style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: "16px 16px 16px 4px", padding: "12px 15px" }, children: _jsx("div", { style: { display: "flex", gap: 5 }, children: [0, .2, .4].map((d, i) => _jsx("div", { style: { width: 7, height: 7, borderRadius: "50%", background: C.muted, animation: `dot 1.2s ${d}s ease-in-out infinite` } }, i)) }) })] })), _jsx("div", { ref: bottomRef }), _jsx("style", { children: `@keyframes dot{0%,80%,100%{opacity:0.3;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}` })] }), msgs.length < 3 && (_jsx("div", { style: { padding: "0 14px 8px", display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none" }, children: SUGG.map(s => _jsx("button", { onClick: () => send(s), style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 20, padding: "6px 13px", cursor: "pointer", color: C.muted, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }, children: s }, s)) })), _jsxs("div", { style: { padding: "10px 14px 14px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 9 }, children: [_jsx("input", { value: input, onChange: e => setInput(e.target.value), onKeyDown: e => e.key === "Enter" && send(), placeholder: "Ask about your portfolio\u2026", style: { flex: 1, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 13, padding: "11px 14px", color: C.text, fontSize: 14, outline: "none" } }), _jsx("button", { onClick: () => send(), disabled: !input.trim() || loading, style: { width: 44, height: 44, borderRadius: 13, background: input.trim() && !loading ? C.gold : C.border, border: "none", cursor: input.trim() && !loading ? "pointer" : "default", fontSize: 20, flexShrink: 0 }, children: "\u2192" })] })] }));
+    (0, react_1.useEffect)(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, loading]);
+    return (React.createElement("div", { style: { display: "flex", flexDirection: "column", height: "calc(100vh - 70px)" } },
+        React.createElement("div", { style: { padding: "16px 16px 12px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 } },
+            React.createElement("div", { style: { width: 38, height: 38, borderRadius: 13, background: `linear-gradient(135deg,${C.purple},${C.blue})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 } }, "\u2728"),
+            React.createElement("div", null,
+                React.createElement("p", { style: { color: C.text, fontSize: 14, fontWeight: 800, margin: "0 0 1px" } }, "AI Financial Advisor"),
+                React.createElement("p", { style: { color: C.green, fontSize: 11, margin: 0 } }, "\u25CF Knows your real portfolio \u00B7 Powered by Claude"))),
+        React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "12px 14px", scrollbarWidth: "none" } },
+            msgs.map((m, i) => (React.createElement("div", { key: i, style: { display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", marginBottom: 10 } },
+                m.role === "assistant" && React.createElement("div", { style: { width: 24, height: 24, borderRadius: 7, background: `linear-gradient(135deg,${C.purple},${C.blue})`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4, fontSize: 13 } }, "\u2728"),
+                React.createElement("div", { style: { maxWidth: "86%", background: m.role === "user" ? C.gold : C.card, borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px", padding: "10px 13px", border: m.role === "user" ? "none" : `1px solid ${C.border}` } },
+                    React.createElement("p", { style: { color: m.role === "user" ? "#000" : C.text, fontSize: 13, margin: 0, lineHeight: 1.65 } }, m.text))))),
+            loading && (React.createElement("div", { style: { display: "flex", gap: 7, alignItems: "flex-start", marginBottom: 10 } },
+                React.createElement("div", { style: { width: 24, height: 24, borderRadius: 7, background: `linear-gradient(135deg,${C.purple},${C.blue})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 } }, "\u2728"),
+                React.createElement("div", { style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: "16px 16px 16px 4px", padding: "12px 15px" } },
+                    React.createElement("div", { style: { display: "flex", gap: 5 } }, [0, .2, .4].map((d, i) => React.createElement("div", { key: i, style: { width: 7, height: 7, borderRadius: "50%", background: C.muted, animation: `dot 1.2s ${d}s ease-in-out infinite` } })))))),
+            React.createElement("div", { ref: bottomRef }),
+            React.createElement("style", null, `@keyframes dot{0%,80%,100%{opacity:0.3;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}`)),
+        msgs.length < 3 && (React.createElement("div", { style: { padding: "0 14px 8px", display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none" } }, SUGG.map(s => React.createElement("button", { key: s, onClick: () => send(s), style: { background: C.card2, border: `1px solid ${C.border}`, borderRadius: 20, padding: "6px 13px", cursor: "pointer", color: C.muted, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 } }, s)))),
+        React.createElement("div", { style: { padding: "10px 14px 14px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 9 } },
+            React.createElement("input", { value: input, onChange: e => setInput(e.target.value), onKeyDown: e => e.key === "Enter" && send(), placeholder: "Ask about your portfolio\u2026", style: { flex: 1, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 13, padding: "11px 14px", color: C.text, fontSize: 14, outline: "none" } }),
+            React.createElement("button", { onClick: () => send(), disabled: !input.trim() || loading, style: { width: 44, height: 44, borderRadius: 13, background: input.trim() && !loading ? C.gold : C.border, border: "none", cursor: input.trim() && !loading ? "pointer" : "default", fontSize: 20, flexShrink: 0 } }, "\u2192"))));
 }
 function MoreHub({ navigate, unread }) {
     const { C } = useTheme();
@@ -532,18 +1000,38 @@ function MoreHub({ navigate, unread }) {
         { icon: "📄", label: "Reports", sc: "reports" }, { icon: "↗️", label: "Share", sc: "share" },
         { icon: "🔔", label: "Alerts", sc: "notifications", badge: unread }, { icon: "⚙️", label: "Settings", sc: "settings" },
     ];
-    return (_jsxs("div", { style: { padding: "0 14px 90px" }, children: [_jsx("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "18px 0 18px" }, children: "More" }), _jsx("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }, children: features.map(f => (_jsxs("button", { onClick: () => navigate(f.sc), style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, padding: "16px 8px 13px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 7, position: "relative" }, children: [(f.badge || 0) > 0 && _jsx("div", { style: { position: "absolute", top: 10, right: 10, width: 18, height: 18, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#fff", fontWeight: 800 }, children: f.badge }), _jsx("div", { style: { width: 42, height: 42, borderRadius: 13, background: C.card2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 21 }, children: f.icon }), _jsx("span", { style: { color: C.text, fontSize: 11, fontWeight: 700, textAlign: "center" }, children: f.label })] }, f.label))) })] }));
+    return (React.createElement("div", { style: { padding: "0 14px 90px" } },
+        React.createElement("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "18px 0 18px" } }, "More"),
+        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 } }, features.map(f => (React.createElement("button", { key: f.label, onClick: () => navigate(f.sc), style: { background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, padding: "16px 8px 13px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 7, position: "relative" } },
+            (f.badge || 0) > 0 && React.createElement("div", { style: { position: "absolute", top: 10, right: 10, width: 18, height: 18, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#fff", fontWeight: 800 } }, f.badge),
+            React.createElement("div", { style: { width: 42, height: 42, borderRadius: 13, background: C.card2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 21 } }, f.icon),
+            React.createElement("span", { style: { color: C.text, fontSize: 11, fontWeight: 700, textAlign: "center" } }, f.label)))))));
 }
 function ShareScreen({ portfolio, expenses, profile }) {
     const { C } = useTheme();
-    const [copied, setCopied] = useState(false);
+    const [copied, setCopied] = (0, react_1.useState)(false);
     const p = portfolio;
     const nw = (p.stocks || []).reduce((s, i) => s + i.currentPrice, 0) + (p.crypto || []).reduce((s, i) => s + i.currentPrice, 0) + (p.mutualFunds || []).reduce((s, i) => s + i.currentValue, 0) + (p.fds || []).reduce((s, f) => s + f.principal, 0) + (p.gold || []).reduce((s, g) => s + g.grams * g.currentRatePerGram, 0) + (p.govt || []).reduce((s, g) => s + g.balance, 0);
     const spent = (expenses || []).reduce((s, e) => s + e.amt, 0);
     const income = profile?.income || 85000;
     const saved = income - spent;
     const txt = `💰 *My Portfolio* — FinTrack Pro\n━━━━━━━━━━━━━━\n\n📊 *Net Worth: ${fmtINR(nw)}*\n\n*This Month*\n💸 Spent: ${fmtINR(spent)}\n💚 Saved: ${fmtINR(saved)} (${Math.round(saved / income * 100)}%)\n\n_Tracked on FinTrack Pro_ 🚀`;
-    return (_jsxs("div", { style: { padding: "0 14px 90px" }, children: [_jsx("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "18px 0 14px" }, children: "Share Portfolio" }), _jsxs("div", { style: { background: "linear-gradient(145deg,#0D1F3C,#0E1520)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 20, marginBottom: 14 }, children: [_jsx("p", { style: { color: "#FFFFFF80", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 4px" }, children: "Total Net Worth" }), _jsx("p", { style: { color: "#fff", fontSize: 28, fontWeight: 900, margin: "0 0 14px", fontFamily: "monospace" }, children: fmtINR(nw) }), _jsxs("div", { style: { display: "flex", justifyContent: "space-between", borderTop: "1px solid #FFFFFF10", paddingTop: 12 }, children: [_jsxs("div", { children: [_jsx("p", { style: { color: "#FFFFFF60", fontSize: 10, margin: "0 0 2px" }, children: "Saved this month" }), _jsx("p", { style: { color: C.green, fontSize: 13, fontWeight: 800, margin: 0 }, children: fmtINR(saved) })] }), _jsxs("div", { style: { textAlign: "right" }, children: [_jsx("p", { style: { color: "#FFFFFF60", fontSize: 10, margin: "0 0 2px" }, children: "Savings rate" }), _jsxs("p", { style: { color: C.gold, fontSize: 13, fontWeight: 800, margin: 0 }, children: [Math.round(saved / income * 100), "%"] })] })] })] }), _jsx("a", { href: `https://wa.me/?text=${encodeURIComponent(txt)}`, target: "_blank", rel: "noreferrer", style: { width: "100%", background: "#25D366", border: "none", borderRadius: 16, padding: 14, cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none", boxSizing: "border-box", marginBottom: 10 }, children: "\uD83D\uDCF1 Share on WhatsApp" }), _jsx("button", { onClick: () => { navigator.clipboard?.writeText(txt); setCopied(true); setTimeout(() => setCopied(false), 2500); }, style: { width: "100%", background: copied ? C.green : C.card, border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 16, padding: 14, cursor: "pointer", color: copied ? C.green : C.muted, fontSize: 14, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }, children: copied ? "✓ Copied!" : "📋 Copy Summary Text" })] }));
+    return (React.createElement("div", { style: { padding: "0 14px 90px" } },
+        React.createElement("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "18px 0 14px" } }, "Share Portfolio"),
+        React.createElement("div", { style: { background: "linear-gradient(145deg,#0D1F3C,#0E1520)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 20, marginBottom: 14 } },
+            React.createElement("p", { style: { color: "#FFFFFF80", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 4px" } }, "Total Net Worth"),
+            React.createElement("p", { style: { color: "#fff", fontSize: 28, fontWeight: 900, margin: "0 0 14px", fontFamily: "monospace" } }, fmtINR(nw)),
+            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", borderTop: "1px solid #FFFFFF10", paddingTop: 12 } },
+                React.createElement("div", null,
+                    React.createElement("p", { style: { color: "#FFFFFF60", fontSize: 10, margin: "0 0 2px" } }, "Saved this month"),
+                    React.createElement("p", { style: { color: C.green, fontSize: 13, fontWeight: 800, margin: 0 } }, fmtINR(saved))),
+                React.createElement("div", { style: { textAlign: "right" } },
+                    React.createElement("p", { style: { color: "#FFFFFF60", fontSize: 10, margin: "0 0 2px" } }, "Savings rate"),
+                    React.createElement("p", { style: { color: C.gold, fontSize: 13, fontWeight: 800, margin: 0 } },
+                        Math.round(saved / income * 100),
+                        "%")))),
+        React.createElement("a", { href: `https://wa.me/?text=${encodeURIComponent(txt)}`, target: "_blank", rel: "noreferrer", style: { width: "100%", background: "#25D366", border: "none", borderRadius: 16, padding: 14, cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none", boxSizing: "border-box", marginBottom: 10 } }, "\uD83D\uDCF1 Share on WhatsApp"),
+        React.createElement("button", { onClick: () => { navigator.clipboard?.writeText(txt); setCopied(true); setTimeout(() => setCopied(false), 2500); }, style: { width: "100%", background: copied ? C.green : C.card, border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 16, padding: 14, cursor: "pointer", color: copied ? C.green : C.muted, fontSize: 14, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 } }, copied ? "✓ Copied!" : "📋 Copy Summary Text")));
 }
 function ReportsScreen({ expenses, portfolio, profile }) {
     const { C } = useTheme();
@@ -576,17 +1064,27 @@ function ReportsScreen({ expenses, portfolio, profile }) {
         tx += (t - 250000) * .05; return Math.round(tx * 1.04); };
     const n = nt(), o = ot(), better = n <= o ? "New" : "Old";
     const exportPDF = () => { const w = window.open("", "_blank"); w.document.write(`<html><head><title>FinTrack Report</title><style>body{font-family:Arial;max-width:800px;margin:40px auto}table{width:100%;border-collapse:collapse}th{background:#f4f6fa;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #eee}</style></head><body><h1>💰 FinTrack Pro — FY Report</h1><h2>Net Worth: ₹${Math.round(nw).toLocaleString("en-IN")}</h2><h2>Expenses</h2><table><tr><th>Name</th><th>Category</th><th>Amount</th></tr>${(expenses || []).map(e => `<tr><td>${e.name}</td><td>${e.cat}</td><td>₹${e.amt.toLocaleString("en-IN")}</td></tr>`).join("")}</table><h2>Tax: ${better} Regime saves ₹${Math.abs(n - o).toLocaleString("en-IN")}</h2><button onclick="window.print()">Print PDF</button></body></html>`); w.document.close(); };
-    return (_jsxs("div", { style: { padding: "0 14px 90px" }, children: [_jsx("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "18px 0 14px" }, children: "Reports" }), _jsx("button", { onClick: exportPDF, style: { width: "100%", background: `linear-gradient(135deg,${C.blue},${C.purple})`, border: "none", borderRadius: 16, padding: 13, cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 800, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }, children: "\uD83D\uDCC4 Export PDF Report" }), _jsxs(Card, { style: { marginBottom: 14 }, children: [_jsx("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: "0 0 10px" }, children: "Total Net Worth" }), _jsx("p", { style: { color: C.gold, fontSize: 26, fontWeight: 900, margin: 0, fontFamily: "monospace" }, children: fmtINR(nw) })] }), _jsx("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }, children: [{ l: "Old Regime", v: o, c: better === "Old" ? C.green : C.red, rec: better === "Old" }, { l: "New Regime", v: n, c: better === "New" ? C.green : C.red, rec: better === "New" }].map(r => (_jsxs("div", { style: { background: C.card, border: `2px solid ${r.rec ? r.c : C.border}`, borderRadius: 18, padding: 14 }, children: [r.rec && _jsx("p", { style: { color: r.c, fontSize: 9, fontWeight: 800, margin: "0 0 5px" }, children: "\u2713 RECOMMENDED" }), _jsx("p", { style: { color: C.muted, fontSize: 11, margin: "0 0 3px" }, children: r.l }), _jsx("p", { style: { color: r.c, fontSize: 20, fontWeight: 900, margin: "0 0 5px" }, children: fmtINR(r.v) }), _jsx(Pill, { text: (r.v / gross * 100).toFixed(1) + "% effective", color: r.c })] }, r.l))) })] }));
+    return (React.createElement("div", { style: { padding: "0 14px 90px" } },
+        React.createElement("h1", { style: { color: C.text, fontSize: 20, fontWeight: 900, margin: "18px 0 14px" } }, "Reports"),
+        React.createElement("button", { onClick: exportPDF, style: { width: "100%", background: `linear-gradient(135deg,${C.blue},${C.purple})`, border: "none", borderRadius: 16, padding: 13, cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 800, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 } }, "\uD83D\uDCC4 Export PDF Report"),
+        React.createElement(Card, { style: { marginBottom: 14 } },
+            React.createElement("p", { style: { color: C.text, fontSize: 13, fontWeight: 700, margin: "0 0 10px" } }, "Total Net Worth"),
+            React.createElement("p", { style: { color: C.gold, fontSize: 26, fontWeight: 900, margin: 0, fontFamily: "monospace" } }, fmtINR(nw))),
+        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, [{ l: "Old Regime", v: o, c: better === "Old" ? C.green : C.red, rec: better === "Old" }, { l: "New Regime", v: n, c: better === "New" ? C.green : C.red, rec: better === "New" }].map(r => (React.createElement("div", { key: r.l, style: { background: C.card, border: `2px solid ${r.rec ? r.c : C.border}`, borderRadius: 18, padding: 14 } },
+            r.rec && React.createElement("p", { style: { color: r.c, fontSize: 9, fontWeight: 800, margin: "0 0 5px" } }, "\u2713 RECOMMENDED"),
+            React.createElement("p", { style: { color: C.muted, fontSize: 11, margin: "0 0 3px" } }, r.l),
+            React.createElement("p", { style: { color: r.c, fontSize: 20, fontWeight: 900, margin: "0 0 5px" } }, fmtINR(r.v)),
+            React.createElement(Pill, { text: (r.v / gross * 100).toFixed(1) + "% effective", color: r.c })))))));
 }
 // ══════════════════════════════════════════════════════════════════════════════
 // ROOT APP
 // ══════════════════════════════════════════════════════════════════════════════
-export default function App() {
+function App() {
     const [isDark, setIsDark] = useLS("ftp-theme", true);
     const C = THEMES[isDark ? "dark" : "light"];
     const toggleTheme = () => setIsDark(v => !v);
-    const [locked, setLocked] = useState(true);
-    const [balHidden, setBalHidden] = useState(false);
+    const [locked, setLocked] = (0, react_1.useState)(true);
+    const [balHidden, setBalHidden] = (0, react_1.useState)(false);
     const [profile, setProfile] = useLS("ftp-profile", null);
     const [portfolio, setPortfolio] = useLS("ftp-portfolio", DEFAULT_PORTFOLIO);
     const [expenses, setExpenses] = useLS("ftp-expenses", DEFAULT_EXPENSES);
@@ -595,7 +1093,7 @@ export default function App() {
     const [bills, setBills] = useLS("ftp-bills", DEFAULT_BILLS);
     const [notifs, setNotifs] = useLS("ftp-notifs", DEFAULT_NOTIFS);
     const [secSettings, setSecSettings] = useLS("ftp-sec", { pinEnabled: true, bioEnabled: true, twoFA: true, balHide: false, maskIDs: true, alerts: true });
-    const [screen, setScreen] = useState("home");
+    const [screen, setScreen] = (0, react_1.useState)("home");
     const navigate = sc => setScreen(sc);
     const unread = (notifs || []).filter(n => !n.read).length;
     const NAV = [
@@ -606,53 +1104,84 @@ export default function App() {
         { id: "more", icon: "⋯", label: "More" },
     ];
     if (locked)
-        return _jsx(ThemeCtx.Provider, { value: { C, isDark, toggleTheme }, children: _jsx(LockScreen, { onUnlock: () => setLocked(false) }) });
+        return React.createElement(ThemeCtx.Provider, { value: { C, isDark, toggleTheme } },
+            React.createElement(LockScreen, { onUnlock: () => setLocked(false) }));
     if (!profile)
-        return _jsx(ThemeCtx.Provider, { value: { C, isDark, toggleTheme }, children: _jsx(Onboarding, { onComplete: f => setProfile({ name: f.name || "Rahul Ji", income: parseFloat(f.income) || 85000, budget: parseFloat(f.budget) || 60000, risk: f.risk }) }) });
+        return React.createElement(ThemeCtx.Provider, { value: { C, isDark, toggleTheme } },
+            React.createElement(Onboarding, { onComplete: f => setProfile({ name: f.name || "Rahul Ji", income: parseFloat(f.income) || 85000, budget: parseFloat(f.budget) || 60000, risk: f.risk }) }));
     const screenEl = () => {
         if (screen === "home")
-            return _jsx(Dashboard, { portfolio: portfolio, expenses: expenses, profile: profile, navigate: navigate, unread: unread });
+            return React.createElement(Dashboard, { portfolio: portfolio, expenses: expenses, profile: profile, navigate: navigate, unread: unread });
         if (screen === "advisor")
-            return _jsx(AIAdvisor, { expenses: expenses, goals: goals, portfolio: portfolio, profile: profile });
+            return React.createElement(AIAdvisor, { expenses: expenses, goals: goals, portfolio: portfolio, profile: profile });
         if (screen === "goals")
-            return _jsx(GoalsScreen, { goals: goals, setGoals: setGoals });
+            return React.createElement(GoalsScreen, { goals: goals, setGoals: setGoals });
         if (screen === "spends")
-            return _jsx(SpendScreen, { expenses: expenses, setExpenses: setExpenses, profile: profile });
+            return React.createElement(SpendScreen, { expenses: expenses, setExpenses: setExpenses, profile: profile });
         if (screen === "portfolio")
-            return _jsx(PortfolioScreen, { portfolio: portfolio, setPortfolio: setPortfolio });
+            return React.createElement(PortfolioScreen, { portfolio: portfolio, setPortfolio: setPortfolio });
         if (screen === "watchlist")
-            return _jsx(WatchlistScreen, { watchlist: watchlist, setWatchlist: setWatchlist });
+            return React.createElement(WatchlistScreen, { watchlist: watchlist, setWatchlist: setWatchlist });
         if (screen === "bills")
-            return _jsx(BillsScreen, { bills: bills, setBills: setBills });
+            return React.createElement(BillsScreen, { bills: bills, setBills: setBills });
         if (screen === "notifications")
-            return _jsx(NotifsScreen, { notifs: notifs, setNotifs: setNotifs });
+            return React.createElement(NotifsScreen, { notifs: notifs, setNotifs: setNotifs });
         if (screen === "settings")
-            return _jsx(SettingsScreen, { profile: profile, setProfile: setProfile, secSettings: secSettings, setSecSettings: setSecSettings });
+            return React.createElement(SettingsScreen, { profile: profile, setProfile: setProfile, secSettings: secSettings, setSecSettings: setSecSettings });
         if (screen === "share")
-            return _jsx(ShareScreen, { portfolio: portfolio, expenses: expenses, profile: profile });
+            return React.createElement(ShareScreen, { portfolio: portfolio, expenses: expenses, profile: profile });
         if (screen === "reports")
-            return _jsx(ReportsScreen, { expenses: expenses, portfolio: portfolio, profile: profile });
+            return React.createElement(ReportsScreen, { expenses: expenses, portfolio: portfolio, profile: profile });
         if (screen === "more")
-            return _jsx(MoreHub, { navigate: navigate, unread: unread });
-        return _jsx("div", { style: { padding: "40px 24px", textAlign: "center", color: C.muted }, children: "Coming soon" });
+            return React.createElement(MoreHub, { navigate: navigate, unread: unread });
+        return React.createElement("div", { style: { padding: "40px 24px", textAlign: "center", color: C.muted } }, "Coming soon");
     };
-    return (_jsx(ThemeCtx.Provider, { value: { C, isDark, toggleTheme }, children: _jsx(SecCtx.Provider, { value: { balHidden, setBalHidden }, children: _jsxs("div", { style: { background: C.bg, minHeight: "100vh", maxWidth: 430, margin: "0 auto", display: "flex", flexDirection: "column", fontFamily: "'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif" }, children: [_jsxs("div", { style: { background: C.bg, padding: "9px 16px 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }, children: [_jsx("span", { style: { color: C.text, fontSize: 13, fontWeight: 800 }, children: "9:41" }), _jsxs("div", { style: { display: "flex", gap: 10, alignItems: "center" }, children: [_jsxs("div", { style: { display: "flex", alignItems: "center", gap: 4 }, children: [_jsx("div", { style: { width: 6, height: 6, borderRadius: "50%", background: C.green } }), _jsx("span", { style: { color: C.muted, fontSize: 10 }, children: "Saved" })] }), _jsx("button", { onClick: () => setBalHidden(v => !v), style: { background: "none", border: "none", cursor: "pointer", fontSize: 14 }, children: balHidden ? "🙈" : "👁️" }), _jsx("button", { onClick: () => setLocked(true), style: { background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 14 }, children: "\uD83D\uDD12" })] })] }), _jsx("div", { style: { flex: 1, overflowY: "auto" }, children: screenEl() }), _jsx("div", { style: { background: C.navBg, borderTop: `1px solid ${C.border}`, display: "flex", padding: "7px 0 16px", flexShrink: 0 }, children: NAV.map(item => {
-                            const active = screen === item.id || (item.id === "more" && !["home", "advisor", "goals", "spends"].includes(screen));
-                            return (_jsxs("button", { onClick: () => navigate(item.id), style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", padding: "4px 0", position: "relative" }, children: [active && _jsx("div", { style: { position: "absolute", top: -7, width: 22, height: 3, background: C.gold, borderRadius: "0 0 3px 3px" } }), _jsx("span", { style: { fontSize: 18, opacity: active ? 1 : 0.45 }, children: item.icon }), _jsx("span", { style: { color: active ? C.gold : C.muted, fontSize: 9, fontWeight: active ? 800 : 500 }, children: item.label })] }, item.id));
-                        }) })] }) }) }));
+    return (React.createElement(ThemeCtx.Provider, { value: { C, isDark, toggleTheme } },
+        React.createElement(SecCtx.Provider, { value: { balHidden, setBalHidden } },
+            React.createElement("div", { style: { background: C.bg, minHeight: "100vh", maxWidth: 430, margin: "0 auto", display: "flex", flexDirection: "column", fontFamily: "'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif" } },
+                React.createElement("div", { style: { background: C.bg, padding: "9px 16px 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 } },
+                    React.createElement("span", { style: { color: C.text, fontSize: 13, fontWeight: 800 } }, "9:41"),
+                    React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center" } },
+                        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4 } },
+                            React.createElement("div", { style: { width: 6, height: 6, borderRadius: "50%", background: C.green } }),
+                            React.createElement("span", { style: { color: C.muted, fontSize: 10 } }, "Saved")),
+                        React.createElement("button", { onClick: () => setBalHidden(v => !v), style: { background: "none", border: "none", cursor: "pointer", fontSize: 14 } }, balHidden ? "🙈" : "👁️"),
+                        React.createElement("button", { onClick: () => setLocked(true), style: { background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 14 } }, "\uD83D\uDD12"))),
+                React.createElement("div", { style: { flex: 1, overflowY: "auto" } }, screenEl()),
+                React.createElement("div", { style: { background: C.navBg, borderTop: `1px solid ${C.border}`, display: "flex", padding: "7px 0 16px", flexShrink: 0 } }, NAV.map(item => {
+                    const active = screen === item.id || (item.id === "more" && !["home", "advisor", "goals", "spends"].includes(screen));
+                    return (React.createElement("button", { key: item.id, onClick: () => navigate(item.id), style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", padding: "4px 0", position: "relative" } },
+                        active && React.createElement("div", { style: { position: "absolute", top: -7, width: 22, height: 3, background: C.gold, borderRadius: "0 0 3px 3px" } }),
+                        React.createElement("span", { style: { fontSize: 18, opacity: active ? 1 : 0.45 } }, item.icon),
+                        React.createElement("span", { style: { color: active ? C.gold : C.muted, fontSize: 9, fontWeight: active ? 800 : 500 } }, item.label)));
+                }))))));
 }
-const _obs = new MutationObserver(() => {
-  if (document.getElementById('root')?.children?.length > 0) {
-    const el = document.getElementById('loading');
-    if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }
-    _obs.disconnect();
-  }
-});
-_obs.observe(document.getElementById('root'), { childList: true });
-window.addEventListener('unhandledrejection', e => {
-  const el = document.getElementById('loading');
-  if (el) el.innerHTML = '<p style="color:#EF4444;font-size:13px;padding:20px;text-align:center;font-family:sans-serif">⚠️ Failed to load.<br>Check internet and refresh.</p>';
-});
+
+// Mount the app
+window.ReactDOM.createRoot(document.getElementById('root')).render(
+  window.React.createElement(App, null)
+);
+})();
+// Hide loading screen once React renders
+(function() {
+  var obs = new MutationObserver(function() {
+    var root = document.getElementById('root');
+    if (root && root.children.length > 0) {
+      var el = document.getElementById('loading');
+      if (el) { el.style.opacity = '0'; setTimeout(function(){ el.remove(); }, 300); }
+      obs.disconnect();
+    }
+  });
+  obs.observe(document.getElementById('root'), { childList: true });
+
+  // Safety timeout — if still loading after 8s, show error
+  setTimeout(function() {
+    var el = document.getElementById('loading');
+    if (el && el.parentNode) {
+      el.innerHTML = '<div style="text-align:center;padding:32px;font-family:sans-serif"><p style="font-size:32px;margin-bottom:16px">⚠️</p><p style="color:#EF4444;font-size:14px;margin-bottom:8px">Failed to load</p><p style="color:#566580;font-size:12px;margin-bottom:20px">Check your internet connection</p><button onclick="location.reload()" style="background:#F59E0B;border:none;border-radius:10px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer">Retry</button></div>';
+    }
+  }, 8000);
+})();
 </script>
 </body>
 </html>
